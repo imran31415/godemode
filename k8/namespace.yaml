@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: godemode
+  labels:
+    name: godemode
+    app: godemode
+    environment: production

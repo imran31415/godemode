@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: godemode-backend
+  namespace: godemode
+  labels:
+    app: godemode-backend
+    component: backend
+    tier: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: godemode-backend
+  template:
+    metadata:
+      labels:
+        app: godemode-backend
+        component: backend
+        version: v1.0.0
+    spec:
+      containers:
+        - name: backend
+          image: registry.digitalocean.com/resourceloop/godemode/backend:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: godemode-config
+            - secretRef:
+                name: godemode-backend-secrets
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+      imagePullSecrets:
+        - name: digitalocean-registry

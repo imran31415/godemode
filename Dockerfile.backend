@@ -1,0 +1,72 @@
+# Backend Dockerfile for GoDeMode
+# Multi-stage build for optimized image size
+
+# Stage 1: Build TinyGo and dependencies
+FROM golang:1.23-alpine AS builder
+
+# Install build dependencies
+RUN apk add --no-cache \
+    git \
+    make \
+    gcc \
+    musl-dev \
+    wget \
+    tar \
+    xz
+
+# Install TinyGo
+RUN wget https://github.com/tinygo-org/tinygo/releases/download/v0.33.0/tinygo_0.33.0_amd64.tar.gz && \
+    tar -xzf tinygo_0.33.0_amd64.tar.gz -C /usr/local && \
+    rm tinygo_0.33.0_amd64.tar.gz
+
+ENV PATH="/usr/local/tinygo/bin:${PATH}"
+ENV TINYGO_ROOT="/usr/local/tinygo"
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Build the backend binary
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o godemode ./cmd/godemode
+
+# Stage 2: Runtime image
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates tzdata
+
+# Install TinyGo for runtime compilation
+RUN apk add --no-cache wget tar && \
+    wget https://github.com/tinygo-org/tinygo/releases/download/v0.33.0/tinygo_0.33.0_amd64.tar.gz && \
+    tar -xzf tinygo_0.33.0_amd64.tar.gz -C /usr/local && \
+    rm tinygo_0.33.0_amd64.tar.gz && \
+    apk del wget tar
+
+ENV PATH="/usr/local/tinygo/bin:${PATH}"
+ENV TINYGO_ROOT="/usr/local/tinygo"
+
+WORKDIR /root/
+
+# Copy binary from builder
+COPY --from=builder /app/godemode .
+
+# Copy examples if needed
+COPY --from=builder /app/examples ./examples
+
+# Expose port
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/health || exit 1
+
+# Run the binary
+CMD ["./godemode"]

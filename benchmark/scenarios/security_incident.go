@@ -1,0 +1,354 @@
+package scenarios
+
+import (
+	"fmt"
+	"time"
+
+	"github.com/imran31415/godemode/benchmark/systems/graph"
+	"github.com/imran31415/godemode/benchmark/systems/security"
+)
+
+// SecurityScenario contains security incident response tasks
+type SecurityScenario struct {
+	Name  string
+	Tasks []Task
+}
+
+// NewSecurityScenario creates the security incident scenario
+func NewSecurityScenario() *SecurityScenario {
+	return &SecurityScenario{
+		Name: "Security Incident Detection & Response",
+		Tasks: []Task{
+			createSecurityIncidentTask(),
+		},
+	}
+}
+
+// createSecurityIncidentTask: 50-step comprehensive security incident response
+func createSecurityIncidentTask() Task {
+	return Task{
+		Name:        "security-incident-response",
+		Description: "Detect, investigate, and respond to a sophisticated security incident",
+		Complexity:  "extreme",
+		ExpectedOps: 50,
+
+		SetupFunc: func(env *TestEnvironment) error {
+			// Initialize security monitor if not exists
+			if env.SecurityMonitor == nil {
+				env.SecurityMonitor = security.NewSecurityMonitor()
+			}
+
+			// Simulate a security incident with multiple suspicious events
+			suspiciousIP1 := "45.142.212.61"
+			suspiciousIP2 := "103.251.167.10"
+			targetUser := "admin@company.com"
+
+			// Add threat intelligence for these IPs
+			env.SecurityMonitor.AddThreatIntel(&security.ThreatIntel{
+				IP:          suspiciousIP1,
+				ThreatLevel: "high",
+				ThreatActor: "APT-29",
+				LastSeen:    time.Now().Add(-24 * time.Hour),
+				AttackType:  "credential_stuffing",
+				Confidence:  0.95,
+				Description: "Known malicious IP associated with credential stuffing campaigns",
+			})
+
+			// Create timeline of suspicious events
+			baseTime := time.Now().Add(-2 * time.Hour)
+
+			// Phase 1: Failed login attempts (brute force)
+			for i := 0; i < 15; i++ {
+				env.SecurityMonitor.LogSecurityEvent(&security.SecurityEvent{
+					EventType: "login_failure",
+					Severity:  "medium",
+					SourceIP:  suspiciousIP1,
+					UserID:    targetUser,
+					Resource:  "/api/auth/login",
+					Details: map[string]interface{}{
+						"attempt":      i + 1,
+						"error":        "invalid_credentials",
+						"user_agent":   "automated-scanner/1.0",
+					},
+				})
+				baseTime = baseTime.Add(2 * time.Minute)
+			}
+
+			// Phase 2: Successful login (credential compromise)
+			baseTime = baseTime.Add(5 * time.Minute)
+			env.SecurityMonitor.LogSecurityEvent(&security.SecurityEvent{
+				EventType: "login_success",
+				Severity:  "high",
+				SourceIP:  suspiciousIP1,
+				UserID:    targetUser,
+				Resource:  "/api/auth/login",
+				Details: map[string]interface{}{
+					"mfa_bypassed": true,
+					"session_id":   "sess_malicious_123",
+				},
+			})
+
+			// Phase 3: Suspicious data access
+			baseTime = baseTime.Add(1 * time.Minute)
+			resources := []string{
+				"/api/users/export",
+				"/api/customers/list",
+				"/api/financial/reports",
+				"/api/admin/settings",
+			}
+
+			for _, resource := range resources {
+				env.SecurityMonitor.LogSecurityEvent(&security.SecurityEvent{
+					EventType: "data_access",
+					Severity:  "critical",
+					SourceIP:  suspiciousIP1,
+					UserID:    targetUser,
+					Resource:  resource,
+					Details: map[string]interface{}{
+						"records_accessed": 1000,
+						"download":         true,
+					},
+				})
+				baseTime = baseTime.Add(30 * time.Second)
+			}
+
+			// Phase 4: Lateral movement attempts
+			baseTime = baseTime.Add(2 * time.Minute)
+			env.SecurityMonitor.LogSecurityEvent(&security.SecurityEvent{
+				EventType: "privilege_escalation",
+				Severity:  "critical",
+				SourceIP:  suspiciousIP1,
+				UserID:    targetUser,
+				Resource:  "/api/admin/users/promote",
+				Details: map[string]interface{}{
+					"target_user": "attacker@external.com",
+					"new_role":    "super_admin",
+				},
+			})
+
+			// Phase 5: Second IP joins attack
+			baseTime = baseTime.Add(5 * time.Minute)
+			for i := 0; i < 5; i++ {
+				env.SecurityMonitor.LogSecurityEvent(&security.SecurityEvent{
+					EventType: "login_failure",
+					Severity:  "high",
+					SourceIP:  suspiciousIP2,
+					UserID:    "operations@company.com",
+					Resource:  "/api/auth/login",
+					Details: map[string]interface{}{
+						"attempt": i + 1,
+					},
+				})
+			}
+
+			// Create initial security alert email
+			alertEmail := `From: security-monitor@company.com
+To: security-team@company.com
+Subject: CRITICAL: Suspicious Activity Detected
+Date: ` + time.Now().Format(time.RFC1123Z) + `
+
+AUTOMATED SECURITY ALERT
+
+Multiple suspicious security events detected:
+- 15 failed login attempts from IP 45.142.212.61
+- Successful login from known malicious IP
+- Unusual data access patterns detected
+- Potential privilege escalation attempt
+
+Immediate investigation required.
+
+Source IPs:
+- 45.142.212.61 (Known threat actor: APT-29)
+- 103.251.167.10
+
+Target accounts:
+- admin@company.com
+- operations@company.com
+
+Auto-generated by Security Monitoring System`
+
+			_, err := env.EmailSystem.WriteEmail("security-team@company.com", "CRITICAL: Suspicious Activity Detected", alertEmail)
+			if err != nil {
+				return err
+			}
+
+			// Add known good solution to knowledge graph
+			env.Graph.AddNode(&graph.Node{
+				ID:   "SEC-SOLUTION-001",
+				Type: "solution",
+				Data: map[string]interface{}{
+					"description": "Credential stuffing attack response",
+					"content":     "1. Block malicious IPs\n2. Invalidate all sessions\n3. Force password reset\n4. Enable MFA\n5. Audit data access\n6. Notify affected users",
+				},
+			})
+
+			// Add past similar incident
+			env.Graph.AddNode(&graph.Node{
+				ID:   "SEC-INCIDENT-PAST-001",
+				Type: "incident",
+				Data: map[string]interface{}{
+					"description": "Previous credential stuffing attack targeting admin accounts",
+					"content":     "Resolved by blocking IPs, resetting credentials, and enabling MFA",
+				},
+			})
+
+			env.Graph.AddEdge("SEC-INCIDENT-PAST-001", "SEC-SOLUTION-001", "resolved_by")
+
+			// Add config for security settings
+			securityConfig := map[string]interface{}{
+				"security": map[string]interface{}{
+					"auto_block_threshold":    10,
+					"session_timeout_minutes": 30,
+					"mfa_required":            false,
+					"ip_whitelist_enabled":    false,
+					"audit_logging":           true,
+				},
+				"incident_response": map[string]interface{}{
+					"auto_remediation_enabled": true,
+					"high_risk_threshold":      75,
+					"notification_channels":    []string{"email", "slack"},
+				},
+			}
+
+			return env.ConfigSystem.WriteConfig("security_settings.json", securityConfig)
+		},
+
+		VerificationFunc: func(env *TestEnvironment) (bool, []string) {
+			var errors []string
+			success := true
+
+			// Verify 1: Security incident ticket created
+			tickets, err := env.Database.QueryTickets(map[string]interface{}{})
+			if err != nil || len(tickets) == 0 {
+				errors = append(errors, "No security incident ticket created")
+				return false, errors
+			}
+
+			ticket := tickets[0]
+
+			// Verify 2: Ticket has critical priority
+			if ticket.Priority < 5 {
+				errors = append(errors, fmt.Sprintf("Expected critical priority (5), got %d", ticket.Priority))
+				success = false
+			} else {
+				errors = append(errors, fmt.Sprintf("✓ Critical priority set: %d", ticket.Priority))
+			}
+
+			// Verify 3: Suspicious IPs blocked
+			if !env.SecurityMonitor.IsIPBlocked("45.142.212.61") {
+				errors = append(errors, "Malicious IP 45.142.212.61 not blocked")
+				success = false
+			} else {
+				errors = append(errors, "✓ Malicious IP 45.142.212.61 blocked")
+			}
+
+			if !env.SecurityMonitor.IsIPBlocked("103.251.167.10") {
+				errors = append(errors, "Suspicious IP 103.251.167.10 not blocked")
+				success = false
+			} else {
+				errors = append(errors, "✓ Suspicious IP 103.251.167.10 blocked")
+			}
+
+			// Verify 4: Compromised user marked
+			if !env.SecurityMonitor.IsUserCompromised("admin@company.com") {
+				errors = append(errors, "Compromised user admin@company.com not marked")
+				success = false
+			} else {
+				errors = append(errors, "✓ Compromised user admin@company.com marked")
+			}
+
+			// Verify 5: Incident documented in knowledge graph
+			nodes, err := env.Graph.FindSimilar("credential stuffing attack", "incident", 5)
+			if err != nil || len(nodes) == 0 {
+				errors = append(errors, "Incident not documented in knowledge graph")
+				success = false
+			} else {
+				errors = append(errors, fmt.Sprintf("✓ Incident documented in knowledge graph (%d related nodes)", len(nodes)))
+			}
+
+			// Verify 6: Security config updated (MFA enabled)
+			config, err := env.ConfigSystem.ReadConfig("security_settings.json")
+			if err != nil {
+				errors = append(errors, "Failed to read security config")
+				return false, errors
+			}
+
+			if secConfig, ok := config["security"].(map[string]interface{}); ok {
+				if mfaRequired, ok := secConfig["mfa_required"].(bool); ok && mfaRequired {
+					errors = append(errors, "✓ MFA requirement enabled")
+				} else {
+					errors = append(errors, "MFA not enabled after incident")
+					success = false
+				}
+			}
+
+			// Verify 7: Notification emails sent
+			sentEmails, err := env.EmailSystem.ListSentEmails()
+			if err != nil {
+				errors = append(errors, "Failed to check sent emails")
+				return false, errors
+			}
+
+			notificationCount := 0
+			for _, emailID := range sentEmails {
+				email, err := env.EmailSystem.ReadSentEmail(emailID)
+				if err == nil {
+					if email.Subject == "SECURITY ALERT: Incident Resolved" ||
+						email.Subject == "URGENT: Password Reset Required" ||
+						email.Subject == "Security Incident Report" {
+						notificationCount++
+					}
+				}
+			}
+
+			if notificationCount >= 2 {
+				errors = append(errors, fmt.Sprintf("✓ Security notifications sent (%d emails)", notificationCount))
+			} else {
+				errors = append(errors, fmt.Sprintf("Insufficient security notifications sent (expected ≥2, got %d)", notificationCount))
+				success = false
+			}
+
+			// Verify 8: Ticket has comprehensive tags
+			expectedTags := []string{"security", "credential-stuffing", "critical"}
+			hasAllTags := true
+			for _, expected := range expectedTags {
+				found := false
+				for _, actual := range ticket.Tags {
+					if actual == expected {
+						found = true
+						break
+					}
+				}
+				if !found {
+					hasAllTags = false
+					break
+				}
+			}
+
+			if hasAllTags {
+				errors = append(errors, fmt.Sprintf("✓ Ticket has comprehensive security tags (%d tags)", len(ticket.Tags)))
+			} else {
+				errors = append(errors, fmt.Sprintf("Ticket missing expected security tags (has %v, expected %v)", ticket.Tags, expectedTags))
+				success = false
+			}
+
+			// Verify 9: Blast radius calculated and documented
+			if ticket.Description == "" {
+				errors = append(errors, "Ticket description empty - blast radius not documented")
+				success = false
+			} else if len(ticket.Description) > 200 {
+				errors = append(errors, "✓ Comprehensive incident details documented")
+			} else {
+				errors = append(errors, "Incident description too brief")
+				success = false
+			}
+
+			// Verify 10: All verifications passed
+			if success {
+				errors = append(errors, "✓ Complex 50-step security workflow completed successfully!")
+			}
+
+			return success, errors
+		},
+	}
+}

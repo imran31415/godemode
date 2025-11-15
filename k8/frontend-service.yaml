@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: godemode-frontend
+  namespace: godemode
+  labels:
+    app: godemode-frontend
+    component: frontend
+spec:
+  type: ClusterIP
+  selector:
+    app: godemode-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http

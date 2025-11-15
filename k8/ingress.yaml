@@ -26,22 +26,7 @@ spec:
     - host: godemode.scalebase.io
       http:
         paths:
-          # Backend API routes
-          - path: /health
-            pathType: Exact
-            backend:
-              service:
-                name: godemode-backend
-                port:
-                  number: 80
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: godemode-backend
-                port:
-                  number: 80
-          # Frontend routes (catch-all)
+          # Frontend routes (all traffic)
           - path: /
             pathType: Prefix
             backend:

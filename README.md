@@ -18,7 +18,7 @@ Both approaches solve the same tasks using the same underlying tools, allowing d
 ### Benchmark Framework
 - ✅ **3 Complexity Levels**: Simple (3 ops) → Medium (8 ops) → Complex (15 ops)
 - ✅ **5 Real Systems**: Email, SQLite, Knowledge Graph, Logs, Configs
-- ✅ **18 Production Tools**: Real operations across all systems
+- ✅ **21 Production Tools**: Real operations across all systems
 - ✅ **Full Verification**: SQL queries, file checks, graph validation
 - ✅ **Complete Metrics**: Duration, tokens, API calls, success rates
 - ✅ **Side-by-Side Comparison**: Both modes pass all verifications
@@ -32,28 +32,36 @@ Both approaches solve the same tasks using the same underlying tools, allowing d
 
 ## 🚀 Quick Start
 
-### Prerequisites
+Get started with GoDeMode in 5 minutes - Benchmark or integrate Code Mode into your application.
+
+### Step 1: Prerequisites
 
 ```bash
-# Install Go 1.21+
+# Check Go version (1.21+ required)
 go version
 
 # Set Claude API key
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
-### Run the Benchmark
+### Step 2: Clone and Run Benchmark
 
 ```bash
-# Build and run
+# Clone repository
+git clone https://github.com/imran31415/godemode.git
+cd godemode
+
+# Build and run benchmark
 go build -o godemode-benchmark benchmark/cmd/main.go
 ./godemode-benchmark
 
 # Or run specific complexity
-TASK_FILTER=medium ./godemode-benchmark
+TASK_FILTER=simple ./godemode-benchmark   # 3 operations
+TASK_FILTER=medium ./godemode-benchmark   # 8 operations
+TASK_FILTER=complex ./godemode-benchmark  # 15 operations
 ```
 
-### Expected Output
+**Expected Output:**
 
 ```
 === Running Task: email-to-ticket ===
@@ -72,6 +80,97 @@ BENCHMARK REPORT
    FUNCTION CALLING:  ✓ All checks passed (13s, 2,764 tokens, 4 API calls)
    COMPARISON: Code Mode 19% faster, used 1,316 fewer tokens, made 3 fewer API calls
 ```
+
+### Step 3: Integrate Code Mode
+
+Use GoDeMode in your own application for safe LLM code execution:
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    "github.com/imran31415/godemode/pkg/executor"
+)
+
+func main() {
+    // 1. Create executor with Yaegi interpreter
+    exec := executor.NewInterpreterExecutor()
+
+    // 2. Get Go code from your LLM (Claude, GPT, etc.)
+    sourceCode := `package main
+import "fmt"
+
+func main() {
+    fmt.Println("Hello from Code Mode!")
+}
+`
+
+    // 3. Execute safely with timeout
+    ctx := context.Background()
+    result, err := exec.Execute(ctx, sourceCode, 30*time.Second)
+
+    if err != nil {
+        fmt.Printf("Error: %v\n", err)
+        return
+    }
+
+    fmt.Printf("Output: %s\n", result.Output)
+    fmt.Printf("Duration: %v\n", result.Duration)
+}
+```
+
+**What's Happening?**
+- **Yaegi Interpreter**: Code is interpreted directly (~15ms) instead of compiled to WASM (2-3s)
+- **Source Validation**: Automatically blocks 8 forbidden imports (os/exec, syscall, unsafe, etc.)
+- **Execution Timeout**: 30-second timeout prevents infinite loops
+- **Pool of 5 Interpreters**: Pre-initialized interpreters enable instant execution
+
+### Step 4: Register Custom Tools
+
+Create a tool registry to give your LLM-generated code access to your systems:
+
+```go
+package main
+
+import (
+    "github.com/imran31415/godemode/benchmark/tools"
+)
+
+func main() {
+    // Create tool registry
+    registry := tools.NewRegistry()
+
+    // Register custom tools
+    registry.Register(&tools.ToolInfo{
+        Name:        "sendEmail",
+        Description: "Send an email to a recipient",
+        Parameters: []tools.ParamInfo{
+            {Name: "to", Type: "string", Required: true},
+            {Name: "subject", Type: "string", Required: true},
+            {Name: "body", Type: "string", Required: true},
+        },
+        Function: func(args map[string]interface{}) (interface{}, error) {
+            // Your email sending logic here
+            return "Email sent successfully", nil
+        },
+    })
+
+    // Now LLM-generated code can call your tools!
+}
+```
+
+**Available Tool Categories:**
+- **Email** (2 tools): `readEmail`, `sendEmail`
+- **Database/Tickets** (3 tools): `createTicket`, `updateTicket`, `queryTickets`
+- **Knowledge Graph** (2 tools): `findSimilarIssues`, `linkIssueInGraph`
+- **Logs/Config** (5 tools): `searchLogs`, `readConfig`, `checkFeatureFlag`, `writeConfig`, `writeLog`
+- **Security** (9 tools): `logSecurityEvent`, `searchSecurityEvents`, `analyzeSuspiciousActivity`, and more
+
+See `benchmark/tools/registry.go` for full implementation details.
 
 ## 📊 Latest Benchmark Results
 
@@ -107,7 +206,7 @@ godemode/
 │   │   ├── codemode_agent.go
 │   │   └── function_calling_agent.go
 │   ├── systems/                  # Real systems (Email, DB, Graph, Logs, Config)
-│   ├── tools/                    # 18 tool implementations
+│   ├── tools/                    # 21 production tool implementations
 │   ├── scenarios/                # 3 tasks with setup & verification
 │   ├── runner/                   # Benchmark orchestration & reporting
 │   ├── llm/                      # Claude API integration
@@ -199,7 +298,7 @@ go test ./...
 ### Completed
 - [x] yaegi interpreter-based execution
 - [x] Source validation
-- [x] 5 real systems with 18 tools
+- [x] 5 real systems with 21 production tools
 - [x] 3 benchmark scenarios (simple, medium, complex)
 - [x] Full verification for both modes
 - [x] Claude API integration

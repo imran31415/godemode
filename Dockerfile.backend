@@ -14,10 +14,14 @@ RUN apk add --no-cache \
     tar \
     xz
 
-# Install TinyGo
-RUN wget https://github.com/tinygo-org/tinygo/releases/download/v0.33.0/tinygo_0.33.0_amd64.tar.gz && \
-    tar -xzf tinygo_0.33.0_amd64.tar.gz -C /usr/local && \
-    rm tinygo_0.33.0_amd64.tar.gz
+# Install TinyGo (detect architecture)
+RUN ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then TINYGO_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then TINYGO_ARCH="arm64"; \
+    else TINYGO_ARCH="amd64"; fi && \
+    wget https://github.com/tinygo-org/tinygo/releases/download/v0.33.0/tinygo_0.33.0_${TINYGO_ARCH}.tar.gz && \
+    tar -xzf tinygo_0.33.0_${TINYGO_ARCH}.tar.gz -C /usr/local && \
+    rm tinygo_0.33.0_${TINYGO_ARCH}.tar.gz
 
 ENV PATH="/usr/local/tinygo/bin:${PATH}"
 ENV TINYGO_ROOT="/usr/local/tinygo"
@@ -43,11 +47,15 @@ FROM alpine:latest
 # Install runtime dependencies
 RUN apk --no-cache add ca-certificates tzdata
 
-# Install TinyGo for runtime compilation
+# Install TinyGo for runtime compilation (detect architecture)
 RUN apk add --no-cache wget tar && \
-    wget https://github.com/tinygo-org/tinygo/releases/download/v0.33.0/tinygo_0.33.0_amd64.tar.gz && \
-    tar -xzf tinygo_0.33.0_amd64.tar.gz -C /usr/local && \
-    rm tinygo_0.33.0_amd64.tar.gz && \
+    ARCH=$(uname -m) && \
+    if [ "$ARCH" = "x86_64" ]; then TINYGO_ARCH="amd64"; \
+    elif [ "$ARCH" = "aarch64" ]; then TINYGO_ARCH="arm64"; \
+    else TINYGO_ARCH="amd64"; fi && \
+    wget https://github.com/tinygo-org/tinygo/releases/download/v0.33.0/tinygo_0.33.0_${TINYGO_ARCH}.tar.gz && \
+    tar -xzf tinygo_0.33.0_${TINYGO_ARCH}.tar.gz -C /usr/local && \
+    rm tinygo_0.33.0_${TINYGO_ARCH}.tar.gz && \
     apk del wget tar
 
 ENV PATH="/usr/local/tinygo/bin:${PATH}"

@@ -1,0 +1,113 @@
+{
+  "name": "filesystem-server",
+  "version": "1.0.0",
+  "description": "MCP server for file system operations",
+  "tools": [
+    {
+      "name": "readFile",
+      "description": "Read contents of a file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path to read"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "writeFile",
+      "description": "Write content to a file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path to write"
+          },
+          "content": {
+            "type": "string",
+            "description": "Content to write"
+          }
+        },
+        "required": ["path", "content"]
+      }
+    },
+    {
+      "name": "listDirectory",
+      "description": "List files and directories in a path",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Directory path to list"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "createDirectory",
+      "description": "Create a new directory",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "Directory path to create"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "deleteFile",
+      "description": "Delete a file",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path to delete"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "getFileInfo",
+      "description": "Get file metadata (size, modified time, etc.)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "description": "File path"
+          }
+        },
+        "required": ["path"]
+      }
+    },
+    {
+      "name": "searchFiles",
+      "description": "Search for files matching a pattern",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "directory": {
+            "type": "string",
+            "description": "Directory to search in"
+          },
+          "pattern": {
+            "type": "string",
+            "description": "File pattern to match (e.g., '*.txt')"
+          }
+        },
+        "required": ["directory", "pattern"]
+      }
+    }
+  ]
+}

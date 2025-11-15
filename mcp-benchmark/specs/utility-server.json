@@ -1,0 +1,75 @@
+{
+  "name": "utility-server",
+  "version": "1.0.0",
+  "description": "Simple MCP utility server for benchmarking",
+  "tools": [
+    {
+      "name": "add",
+      "description": "Add two numbers together",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "a": {
+            "type": "number",
+            "description": "First number"
+          },
+          "b": {
+            "type": "number",
+            "description": "Second number"
+          }
+        },
+        "required": ["a", "b"]
+      }
+    },
+    {
+      "name": "getCurrentTime",
+      "description": "Get the current time in RFC3339 format",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "generateUUID",
+      "description": "Generate a random UUID",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "concatenateStrings",
+      "description": "Concatenate an array of strings with a separator",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "strings": {
+            "type": "array",
+            "description": "Array of strings to concatenate"
+          },
+          "separator": {
+            "type": "string",
+            "description": "Separator to use between strings"
+          }
+        },
+        "required": ["strings"]
+      }
+    },
+    {
+      "name": "reverseString",
+      "description": "Reverse a string",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "String to reverse"
+          }
+        },
+        "required": ["text"]
+      }
+    }
+  ]
+}

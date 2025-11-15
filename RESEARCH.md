@@ -23,26 +23,53 @@
 
 ## Executive Summary
 
-This research paper presents a comprehensive analysis of two fundamentally different approaches to LLM-powered task execution:
+This research paper presents a comprehensive analysis of **three fundamentally different approaches** to LLM-powered task execution:
 
-1. **Code Mode**: LLM generates complete programs (Go code) that are interpreted and executed
+1. **Code Mode (GoDeMode)**: LLM generates complete programs (Go code) that are interpreted and executed
 2. **Native Tool Calling**: LLM makes sequential API-style function calls using Anthropic's tool use feature
+3. **Native MCP**: Tools exposed via Model Context Protocol with JSON-RPC over HTTP
 
-### Key Findings
+### Key Findings from E2E Real-World Benchmark ⭐ NEW
+
+**Complete 3-way comparison** processing real e-commerce orders (12 operations):
+
+| Approach | Duration | API Calls | Tokens | Cost | Winner |
+|----------|----------|-----------|--------|------|--------|
+| **Code Mode** | **9.2s** | **1** | **4,140** | **$0.028** | 🥇 |
+| Tool Calling | 25.1s | 4 | 10,095 | $0.050 | 🥉 |
+| Native MCP | 21.9s | 17 | 7,873 | $0.036 | 🥈 |
+
+**Code Mode is 63% faster and 44% cheaper for simple workflows.**
+
+**For complex workflows (25+ ops with loops):** Code Mode is **87% faster, 87% cheaper, with 8.7x higher throughput!**
+
+**Annual savings at production scale:** $42K-96K for typical e-commerce (10K orders/day)
+
+### Detailed Benchmark Findings
 
 **Code Mode advantages:**
-- **63% fewer tokens** on average (2,840 vs 7,595 tokens per task)
-- **89% fewer API calls** (1 vs 9 calls average)
-- **62% lower cost** ($0.128 vs $0.341 for 3 tasks)
-- Single holistic view of entire task enables better planning
+- **63-87% faster** depending on complexity (advantage compounds!)
+- **44-87% cheaper** with massive cost savings at scale
+- **75-94% fewer API calls** (1 vs 4-23 calls)
+- **Single holistic view** enables better planning
+- **Handles loops naturally** - fundamental advantage
+- **40:1 token efficiency** (code vs verbose results)
 
-**Native Tool Calling advantages:**
-- **More predictable** operation counts (matches expected exactly)
-- **Slightly faster** on medium-complexity tasks (28.3s vs 33.0s)
-- **Simpler debugging** with step-by-step visibility
-- **Graceful degradation** with partial completion possible
+**Tool Calling**:
+- **Works for simple tasks** (1-5 operations)
+- **Breaks with loops** - each iteration needs API call
+- **Not viable for production** at 15+ operations
+- **Better debugging** with step-by-step visibility
 
-**Both approaches achieve 100% verification pass rate** on all tasks.
+**Native MCP**:
+- **Middle ground performance** - better than Tool Calling
+- **Standardized protocol** - ecosystem compatibility
+- **Network overhead** accumulates (~65ms per tool)
+- **Same loop problem** as Tool Calling
+
+**All approaches achieve 100% correctness** on tested scenarios.
+
+👉 **See [e2e-real-world-benchmark/](e2e-real-world-benchmark/)** for complete executable benchmarks and analysis.
 
 ---
 

@@ -1,0 +1,133 @@
+================================================================================
+📊 REAL MCP BENCHMARK RESULTS
+================================================================================
+
+📋 Task:
+Complete these 5 utility operations and return the results:
+1. Add 10 and 5 together
+2. Get the current time
+3. Generate a UUID
+4. Concatenate ["Hello", "World", "from", "MCP"] with spaces
+5. Reverse the string "GoDeMode"
+
+Provide a summary of all results.
+
+🔵 Native MCP (Sequential Tool Calling)
+--------------------------------------------------------------------------------
+  ✅ Success
+  Total Duration:    7.729478959s
+  API Calls:         2
+  Tool Calls:        5
+  Input Tokens:      1224
+  Output Tokens:     381
+  Total Tokens:      1605
+
+  Output:
+  ## Summary of Results:
+  
+  1. **Addition**: 10 + 5 = **15**
+  2. **Current Time**: **2025-11-15T14:32:43-08:00** (November 15, 2025 at 2:32:43 PM PST)
+  3. **Generated UUID**: **4d84aaed-417c-4875-a548-c3f89ca675d2**
+  4. **String Concatenation**: **"Hello World from MCP"**
+  5. **String Reversal**: "GoDeMode" reversed is **"edoMeDoG"**
+  
+  All utility operations completed successfully!
+
+🟢 GoDeMode MCP (Code Generation)
+--------------------------------------------------------------------------------
+  ✅ Success
+  Total Duration:      6.922692833s
+  Code Gen Duration:   6.920652042s
+  Execution Duration:  571.834µs
+  API Calls:           1
+  Input Tokens:        520
+  Output Tokens:       576
+  Total Tokens:        1096
+
+  Generated Code:
+  // 1. Add 10 and 5 together
+  result1, err := registry.Call("add", map[string]interface{}{"a": 10.0, "b": 5.0})
+  if err != nil {
+      fmt.Printf("Error adding numbers: %v\n", err)
+      return
+  }
+  
+  // 2. Get the current time
+  result2, err := registry.Call("getCurrentTime", map[string]interface{}{})
+  if err != nil {
+      fmt.Printf("Error getting current time: %v\n", err)
+      return
+  }
+  
+  // 3. Generate a UUID
+  result3, err := registry.Call("generateUUID", map[string]interface{}{})
+  if err != nil {
+      fmt.Printf("Error generating UUID: %v\n", err)
+      return
+  }
+  
+  // 4. Concatenate strings with spaces
+  strings := []interface{}{"Hello", "World", "from", "MCP"}
+  result4, err := registry.Call("concatenateStrings", map[string]interface{}{
+      "separator": " ",
+      "strings":   strings,
+  })
+  if err != nil {
+      fmt.Printf("Error concatenating strings: %v\n", err)
+      return
+  }
+  
+  // 5. Reverse the string "GoDeMode"
+  result5, err := registry.Call("reverseString", map[string]interface{}{"text": "GoDeMode"})
+  if err != nil {
+      fmt.Printf("Error reversing string: %v\n", err)
+      return
+  }
+  
+  // Print individual results
+  fmt.Printf("1. Addition (10 + 5): %v\n", result1)
+  fmt.Printf("2. Current time: %v\n", result2)
+  fmt.Printf("3. Generated UUID: %v\n", result3)
+  fmt.Printf("4. Concatenated string: %v\n", result4)
+  fmt.Printf("5. Reversed string: %v\n", result5)
+  
+  // Print summary
+  fmt.Printf("\n=== SUMMARY OF ALL RESULTS ===\n")
+  fmt.Printf("Addition result: %v\n", result1)
+  fmt.Printf("Current time: %v\n", result2)
+  fmt.Printf("UUID: %v\n", result3)
+  fmt.Printf("Concatenated: %v\n", result4)
+  fmt.Printf("Reversed: %v\n", result5)
+  
+
+  Output:
+  Add result: map[result:15]
+  Current time: map[time:2025-11-15T14:32:56-08:00]
+  UUID: map[uuid:2dfd3324-b127-4fcb-a604-42d031794174]
+  Concatenated: map[result:Hello World from MCP]
+  Reversed: map[result:edoMeDoG]
+  
+  Summary: All 5 operations completed successfully using GoDeMode's code generation approach.
+  
+
+📈 COMPARISON
+--------------------------------------------------------------------------------
+
+| Metric              | Native MCP | GoDeMode MCP | Improvement |
+|---------------------|------------|--------------|-------------|
+| API Calls           | 2          | 1            | 50.0% ↓     |
+| Total Duration      | 7.729478959s | 6.922692833s | 10.4% ↓     |
+| Total Tokens        | 1605       | 1096         | 31.7% ↓     |
+| Tool Calls          | 5          | N/A (in code) | -           |
+
+🎯 Key Insights:
+  • GoDeMode reduced API calls by 50.0% (2 → 1)
+  • GoDeMode was 10.4% faster (7.729478959s → 6.922692833s)
+  • GoDeMode used 31.7% fewer tokens (1605 → 1096)
+
+💰 Cost Estimate (Claude Sonnet pricing):
+  • Native MCP:   $0.009387
+  • GoDeMode MCP: $0.010200
+  • Savings:      -8.7% ($-0.000813)
+
+================================================================================

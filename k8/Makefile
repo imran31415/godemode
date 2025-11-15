@@ -76,31 +76,15 @@ setup-namespace: ## Create namespace and copy registry secret
 		exit 1; \
 	fi
 
-.PHONY: build-backend
-build-backend: ## Build backend Docker image
-	@echo "Building backend image..."
-	@echo "Tag: $(BACKEND_IMAGE):$(TAG)"
-	docker build -f ../Dockerfile.backend -t $(BACKEND_IMAGE):$(TAG) ..
-	docker tag $(BACKEND_IMAGE):$(TAG) $(BACKEND_IMAGE):latest
-	@echo "✓ Backend image built successfully"
-
 .PHONY: build-frontend
-build-frontend: ## Build frontend Docker image
-	@echo "Building frontend image..."
+build-frontend: ## Build frontend Docker image for amd64
+	@echo "Building frontend image for linux/amd64..."
 	@echo "Tag: $(FRONTEND_IMAGE):$(TAG)"
-	docker build -f ../frontend/Dockerfile -t $(FRONTEND_IMAGE):$(TAG) ../frontend
-	docker tag $(FRONTEND_IMAGE):$(TAG) $(FRONTEND_IMAGE):latest
+	docker buildx build --platform linux/amd64 -f ../frontend/Dockerfile -t $(FRONTEND_IMAGE):$(TAG) -t $(FRONTEND_IMAGE):latest ../frontend
 	@echo "✓ Frontend image built successfully"
 
 .PHONY: build
-build: build-backend build-frontend ## Build all Docker images
-
-.PHONY: push-backend
-push-backend: ## Push backend image to registry
-	@echo "Pushing backend image..."
-	docker push $(BACKEND_IMAGE):$(TAG)
-	docker push $(BACKEND_IMAGE):latest
-	@echo "✓ Backend image pushed successfully"
+build: build-frontend ## Build frontend Docker image
 
 .PHONY: push-frontend
 push-frontend: ## Push frontend image to registry
@@ -110,7 +94,7 @@ push-frontend: ## Push frontend image to registry
 	@echo "✓ Frontend image pushed successfully"
 
 .PHONY: push
-push: push-backend push-frontend ## Push all images to registry
+push: push-frontend ## Push frontend image to registry
 
 .PHONY: build-push
 build-push: build push ## Build and push all images
@@ -141,66 +125,35 @@ apply-secrets: setup-namespace ## Apply secrets to cluster
 		exit 1; \
 	fi
 
-.PHONY: apply-config
-apply-config: setup-namespace ## Apply ConfigMap
-	@echo "Applying ConfigMap..."
-	kubectl apply -f configmap.yaml
-	@echo "✓ ConfigMap applied successfully"
-
-.PHONY: deploy-backend
-deploy-backend: apply-config ## Deploy backend to Kubernetes
-	@echo "Deploying backend..."
-	kubectl apply -f backend-service.yaml
-	kubectl apply -f backend-deployment.yaml
-	kubectl apply -f backend-hpa.yaml
-	@echo "Waiting for backend rollout..."
-	kubectl rollout status deployment/godemode-backend -n $(NAMESPACE) --timeout=300s
-	@echo "✓ Backend deployed successfully"
-
-.PHONY: deploy-frontend
-deploy-frontend: ## Deploy frontend to Kubernetes
-	@echo "Deploying frontend..."
+.PHONY: deploy-k8s
+deploy-k8s: setup-namespace ## Deploy frontend to Kubernetes
+	@echo "Deploying frontend to Kubernetes..."
 	kubectl apply -f frontend-service.yaml
 	kubectl apply -f frontend-deployment.yaml
 	kubectl apply -f frontend-hpa.yaml
+	kubectl apply -f ingress.yaml
 	@echo "Waiting for frontend rollout..."
 	kubectl rollout status deployment/godemode-frontend -n $(NAMESPACE) --timeout=300s
 	@echo "✓ Frontend deployed successfully"
 
-.PHONY: deploy-ingress
-deploy-ingress: ## Deploy ingress
-	@echo "Deploying ingress..."
-	kubectl apply -f ingress.yaml
-	@echo "✓ Ingress deployed successfully"
-
 .PHONY: deploy
-deploy: deploy-backend deploy-frontend deploy-ingress ## Deploy all components
-
-.PHONY: full-deploy
-full-deploy: check-context check-registry-secret setup-namespace apply-secrets apply-config deploy ## Complete deployment (namespace, secrets, config, all components)
+deploy: check-context build push deploy-k8s ## Build, push, and deploy frontend (complete workflow)
 	@echo ""
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	@echo "✅ Full deployment complete!"
+	@echo "✅ Deployment complete!"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 	@echo ""
 	@make status
 
-.PHONY: update-backend
-update-backend: build-backend push-backend ## Update backend (build, push, deploy)
-	@echo "Updating backend deployment to use tag: $(TAG)"
-	kubectl set image deployment/godemode-backend backend=$(BACKEND_IMAGE):$(TAG) -n $(NAMESPACE)
-	kubectl rollout status deployment/godemode-backend -n $(NAMESPACE) --timeout=300s
-	@echo "✓ Backend updated successfully"
-
-.PHONY: update-frontend
-update-frontend: build-frontend push-frontend ## Update frontend (build, push, deploy)
+.PHONY: update-deployment
+update-deployment: ## Update existing deployment with latest image
 	@echo "Updating frontend deployment to use tag: $(TAG)"
-	kubectl set image deployment/godemode-frontend frontend=$(FRONTEND_IMAGE):$(TAG) -n $(NAMESPACE)
+	kubectl set image deployment/godemode-frontend frontend=$(FRONTEND_IMAGE):latest -n $(NAMESPACE)
 	kubectl rollout status deployment/godemode-frontend -n $(NAMESPACE) --timeout=300s
 	@echo "✓ Frontend updated successfully"
 
 .PHONY: update
-update: update-backend update-frontend ## Update all components
+update: build push update-deployment ## Update frontend (build, push, deploy)
 
 .PHONY: status
 status: ## Show deployment status
@@ -224,53 +177,26 @@ status: ## Show deployment status
 	@echo "🌐 Application URL: https://godemode.scalebase.io"
 	@echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-.PHONY: logs-backend
-logs-backend: ## Show backend logs
-	kubectl logs -f deployment/godemode-backend -n $(NAMESPACE)
-
-.PHONY: logs-frontend
-logs-frontend: ## Show frontend logs
+.PHONY: logs
+logs: ## Show frontend logs
 	kubectl logs -f deployment/godemode-frontend -n $(NAMESPACE)
 
-.PHONY: describe-backend
-describe-backend: ## Describe backend deployment
-	kubectl describe deployment godemode-backend -n $(NAMESPACE)
-
-.PHONY: describe-frontend
-describe-frontend: ## Describe frontend deployment
+.PHONY: describe
+describe: ## Describe frontend deployment
 	kubectl describe deployment godemode-frontend -n $(NAMESPACE)
 
-.PHONY: restart-backend
-restart-backend: ## Restart backend pods
-	kubectl rollout restart deployment/godemode-backend -n $(NAMESPACE)
-	kubectl rollout status deployment/godemode-backend -n $(NAMESPACE)
-
-.PHONY: restart-frontend
-restart-frontend: ## Restart frontend pods
+.PHONY: restart
+restart: ## Restart frontend pods
 	kubectl rollout restart deployment/godemode-frontend -n $(NAMESPACE)
 	kubectl rollout status deployment/godemode-frontend -n $(NAMESPACE)
 
-.PHONY: restart
-restart: restart-backend restart-frontend ## Restart all pods
-
-.PHONY: scale-backend
-scale-backend: ## Scale backend (usage: make scale-backend REPLICAS=5)
-	kubectl scale deployment godemode-backend --replicas=$(REPLICAS) -n $(NAMESPACE)
-	@echo "✓ Backend scaled to $(REPLICAS) replicas"
-
-.PHONY: scale-frontend
-scale-frontend: ## Scale frontend (usage: make scale-frontend REPLICAS=3)
+.PHONY: scale
+scale: ## Scale frontend (usage: make scale REPLICAS=3)
 	kubectl scale deployment godemode-frontend --replicas=$(REPLICAS) -n $(NAMESPACE)
 	@echo "✓ Frontend scaled to $(REPLICAS) replicas"
 
-.PHONY: rollback-backend
-rollback-backend: ## Rollback backend to previous version
-	kubectl rollout undo deployment/godemode-backend -n $(NAMESPACE)
-	kubectl rollout status deployment/godemode-backend -n $(NAMESPACE)
-	@echo "✓ Backend rolled back"
-
-.PHONY: rollback-frontend
-rollback-frontend: ## Rollback frontend to previous version
+.PHONY: rollback
+rollback: ## Rollback frontend to previous version
 	kubectl rollout undo deployment/godemode-frontend -n $(NAMESPACE)
 	kubectl rollout status deployment/godemode-frontend -n $(NAMESPACE)
 	@echo "✓ Frontend rolled back"
@@ -294,31 +220,14 @@ clean-images: ## Clean local Docker images
 	docker rmi $(FRONTEND_IMAGE):$(TAG) $(FRONTEND_IMAGE):latest || true
 	@echo "✓ Local images cleaned"
 
-.PHONY: shell-backend
-shell-backend: ## Open shell in backend pod
-	@POD=$$(kubectl get pod -n $(NAMESPACE) -l app=godemode-backend -o jsonpath='{.items[0].metadata.name}'); \
-	echo "Opening shell in pod: $$POD"; \
-	kubectl exec -it $$POD -n $(NAMESPACE) -- /bin/sh
-
-.PHONY: shell-frontend
-shell-frontend: ## Open shell in frontend pod
+.PHONY: shell
+shell: ## Open shell in frontend pod
 	@POD=$$(kubectl get pod -n $(NAMESPACE) -l app=godemode-frontend -o jsonpath='{.items[0].metadata.name}'); \
 	echo "Opening shell in pod: $$POD"; \
 	kubectl exec -it $$POD -n $(NAMESPACE) -- /bin/sh
 
 .PHONY: test-health
 test-health: ## Test health endpoints
-	@echo "Testing backend health..."
-	@kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never -n $(NAMESPACE) -- \
-		curl -s http://godemode-backend/health
-	@echo ""
 	@echo "Testing frontend health..."
 	@kubectl run curl-test --image=curlimages/curl:latest --rm -i --restart=Never -n $(NAMESPACE) -- \
 		curl -s http://godemode-frontend/health
-
-# Quick deployment target - for CI/CD or fast deploys
-.PHONY: quick-deploy
-quick-deploy: build-push ## Quick build and deploy with latest tag
-	kubectl set image deployment/godemode-backend backend=$(BACKEND_IMAGE):latest -n $(NAMESPACE)
-	kubectl set image deployment/godemode-frontend frontend=$(FRONTEND_IMAGE):latest -n $(NAMESPACE)
-	@echo "✓ Images updated, rollout in progress..."

@@ -5,6 +5,7 @@
 [![Go 1.21+](https://img.shields.io/badge/go-1.21+-blue)]()
 
 ## 🎯 What is This?
+- [Codemode overview](https://godemode.scalebase.io)
 
 This project provides **executable benchmarks** with **real Claude API calls** comparing three approaches to building production AI agents:
 

@@ -75,6 +75,8 @@ k8s-deploy: setup-namespace ## Deploy frontend to Kubernetes
 	kubectl apply -f k8s/service.yaml
 	@echo "Setting image to $(LATEST_IMAGE)..."
 	kubectl set image deployment/godemode-frontend godemode-frontend=$(LATEST_IMAGE) -n godemode
+	@echo "Restarting deployment to pull new image..."
+	kubectl rollout restart deployment/godemode-frontend -n godemode
 	@echo "Waiting for rollout to complete..."
 	kubectl rollout status deployment/godemode-frontend -n godemode
 	@echo ""

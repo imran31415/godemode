@@ -2,7 +2,7 @@
 # Multi-stage build for optimized image size
 
 # Stage 1: Build TinyGo and dependencies
-FROM golang:1.23-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -19,9 +19,9 @@ RUN ARCH=$(uname -m) && \
     if [ "$ARCH" = "x86_64" ]; then TINYGO_ARCH="amd64"; \
     elif [ "$ARCH" = "aarch64" ]; then TINYGO_ARCH="arm64"; \
     else TINYGO_ARCH="amd64"; fi && \
-    wget https://github.com/tinygo-org/tinygo/releases/download/v0.33.0/tinygo_0.33.0_${TINYGO_ARCH}.tar.gz && \
-    tar -xzf tinygo_0.33.0_${TINYGO_ARCH}.tar.gz -C /usr/local && \
-    rm tinygo_0.33.0_${TINYGO_ARCH}.tar.gz
+    wget https://github.com/tinygo-org/tinygo/releases/download/v0.39.0/tinygo0.39.0.linux-${TINYGO_ARCH}.tar.gz && \
+    tar -xzf tinygo0.39.0.linux-${TINYGO_ARCH}.tar.gz -C /usr/local && \
+    rm tinygo0.39.0.linux-${TINYGO_ARCH}.tar.gz
 
 ENV PATH="/usr/local/tinygo/bin:${PATH}"
 ENV TINYGO_ROOT="/usr/local/tinygo"
@@ -53,9 +53,9 @@ RUN apk add --no-cache wget tar && \
     if [ "$ARCH" = "x86_64" ]; then TINYGO_ARCH="amd64"; \
     elif [ "$ARCH" = "aarch64" ]; then TINYGO_ARCH="arm64"; \
     else TINYGO_ARCH="amd64"; fi && \
-    wget https://github.com/tinygo-org/tinygo/releases/download/v0.33.0/tinygo_0.33.0_${TINYGO_ARCH}.tar.gz && \
-    tar -xzf tinygo_0.33.0_${TINYGO_ARCH}.tar.gz -C /usr/local && \
-    rm tinygo_0.33.0_${TINYGO_ARCH}.tar.gz && \
+    wget https://github.com/tinygo-org/tinygo/releases/download/v0.39.0/tinygo0.39.0.linux-${TINYGO_ARCH}.tar.gz && \
+    tar -xzf tinygo0.39.0.linux-${TINYGO_ARCH}.tar.gz -C /usr/local && \
+    rm tinygo0.39.0.linux-${TINYGO_ARCH}.tar.gz && \
     apk del wget tar
 
 ENV PATH="/usr/local/tinygo/bin:${PATH}"

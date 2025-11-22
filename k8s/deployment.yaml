@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: godemode-frontend
+  namespace: godemode
+  labels:
+    app: godemode
+    component: frontend
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: godemode
+      component: frontend
+  template:
+    metadata:
+      labels:
+        app: godemode
+        component: frontend
+    spec:
+      containers:
+      - name: godemode-frontend
+        image: registry.digitalocean.com/resourceloop/godemode/frontend:latest
+        ports:
+        - containerPort: 80
+          name: http
+          protocol: TCP
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+          timeoutSeconds: 2
+          failureThreshold: 2
+      imagePullSecrets:
+      - name: digitalocean-registry

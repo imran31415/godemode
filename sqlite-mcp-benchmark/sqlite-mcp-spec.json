@@ -1,0 +1,141 @@
+{
+  "name": "mcp-sqlite",
+  "version": "1.0.0",
+  "description": "MCP server providing comprehensive SQLite database interaction capabilities (based on jparkerweb/mcp-sqlite)",
+  "tools": [
+    {
+      "name": "db_info",
+      "description": "Get detailed information about the connected database including file path, size, and table count.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "list_tables",
+      "description": "List all tables in the database.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      }
+    },
+    {
+      "name": "get_table_schema",
+      "description": "Get detailed information about a table's schema including column names, types, and constraints.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tableName": {
+            "type": "string",
+            "description": "Name of the table to describe"
+          }
+        },
+        "required": ["tableName"]
+      }
+    },
+    {
+      "name": "create_record",
+      "description": "Insert a new record into a table.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "description": "Name of the table"
+          },
+          "data": {
+            "type": "object",
+            "description": "Record data as key-value pairs"
+          }
+        },
+        "required": ["table", "data"]
+      }
+    },
+    {
+      "name": "read_records",
+      "description": "Query records from a table with optional filtering, pagination, and sorting.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "description": "Name of the table"
+          },
+          "conditions": {
+            "type": "object",
+            "description": "Filter conditions as key-value pairs"
+          },
+          "limit": {
+            "type": "number",
+            "description": "Maximum number of records to return"
+          },
+          "offset": {
+            "type": "number",
+            "description": "Number of records to skip"
+          }
+        },
+        "required": ["table"]
+      }
+    },
+    {
+      "name": "update_records",
+      "description": "Update records in a table that match specified conditions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "description": "Name of the table"
+          },
+          "data": {
+            "type": "object",
+            "description": "New values as key-value pairs"
+          },
+          "conditions": {
+            "type": "object",
+            "description": "Filter conditions to select records to update"
+          }
+        },
+        "required": ["table", "data", "conditions"]
+      }
+    },
+    {
+      "name": "delete_records",
+      "description": "Delete records from a table that match specified conditions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "table": {
+            "type": "string",
+            "description": "Name of the table"
+          },
+          "conditions": {
+            "type": "object",
+            "description": "Filter conditions to select records to delete"
+          }
+        },
+        "required": ["table", "conditions"]
+      }
+    },
+    {
+      "name": "query",
+      "description": "Execute a custom SQL query against the connected SQLite database. Supports parameterized queries for security.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "sql": {
+            "type": "string",
+            "description": "The SQL query to execute"
+          },
+          "values": {
+            "type": "array",
+            "description": "Array of parameter values to use in the query"
+          }
+        },
+        "required": ["sql"]
+      }
+    }
+  ]
+}

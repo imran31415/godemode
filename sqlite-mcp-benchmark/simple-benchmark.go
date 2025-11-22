@@ -79,6 +79,20 @@ type BenchmarkResult struct {
 	Success       bool
 	Error         string
 	EstimatedCost float64
+	AuditLog      []AuditEntry
+	GeneratedCode string // For CodeMode
+}
+
+// AuditEntry tracks each operation for auditability
+type AuditEntry struct {
+	Timestamp   time.Time
+	Type        string // "api_call", "tool_call", "tool_result"
+	Details     string
+	ToolName    string
+	ToolArgs    string
+	ToolResult  string
+	InputTokens  int
+	OutputTokens int
 }
 
 func main() {
@@ -107,17 +121,41 @@ func main() {
 	fmt.Println("SQLite MCP Benchmark: CodeMode vs Native Tool Calling")
 	fmt.Println("=" + strings.Repeat("=", 69))
 
-	// Simple scenario prompt
-	prompt := `You have a SQLite database with a customers table.
+	// Run both scenarios
+	runScenario(apiKey, "Simple", getSimplePrompt(), 5)
+	runScenario(apiKey, "Complex", getComplexPrompt(), 12)
+}
+
+func getSimplePrompt() string {
+	return `You have a SQLite database with a customers table.
 Task:
 1. List all tables in the database
 2. Get the schema of the customers table
 3. Read all customers with status 'active'
 4. Create a new customer named "Test User" with email "test@example.com" and status "active"
 5. Read all active customers again to confirm the new customer was added`
+}
 
-	fmt.Println("\nScenario: Simple multi-step CRUD operations")
-	fmt.Println("Expected operations: ~5 tool calls\n")
+func getComplexPrompt() string {
+	return `You have a SQLite database with customers, products, orders, and order_items tables.
+Perform a comprehensive business analysis:
+
+1. List all tables to understand the schema
+2. Get the schema of all 4 tables (customers, products, orders, order_items)
+3. Find all customers who have placed orders (join customers and orders)
+4. Calculate total revenue per customer by joining orders with order_items and products
+5. Find the top-selling product by quantity
+6. Create a new order for customer "Alice Smith" with 2 units of "Widget A" and 1 unit of "Gadget B"
+7. Update the stock quantity for the ordered products
+8. Verify the new order was created by reading it back with all its items
+9. Generate a summary report showing: total customers, total products, total orders, and total revenue`
+}
+
+func runScenario(apiKey, name, prompt string, expectedOps int) {
+	fmt.Printf("\n%s\n", strings.Repeat("=", 70))
+	fmt.Printf("SCENARIO: %s\n", name)
+	fmt.Printf("%s\n", strings.Repeat("=", 70))
+	fmt.Printf("Expected operations: ~%d tool calls\n\n", expectedOps)
 
 	// Run CodeMode benchmark
 	fmt.Println("Running CodeMode approach...")
@@ -147,7 +185,51 @@ func setupTestData() error {
 		)`,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create table: %w", err)
+		return fmt.Errorf("failed to create customers table: %w", err)
+	}
+
+	// Create products table
+	_, err = registry.Call("query", map[string]interface{}{
+		"sql": `CREATE TABLE IF NOT EXISTS products (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL,
+			price REAL NOT NULL,
+			stock_quantity INTEGER DEFAULT 0,
+			category TEXT
+		)`,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create products table: %w", err)
+	}
+
+	// Create orders table
+	_, err = registry.Call("query", map[string]interface{}{
+		"sql": `CREATE TABLE IF NOT EXISTS orders (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			customer_id INTEGER NOT NULL,
+			order_date TEXT DEFAULT CURRENT_TIMESTAMP,
+			status TEXT DEFAULT 'pending',
+			FOREIGN KEY (customer_id) REFERENCES customers(id)
+		)`,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create orders table: %w", err)
+	}
+
+	// Create order_items table
+	_, err = registry.Call("query", map[string]interface{}{
+		"sql": `CREATE TABLE IF NOT EXISTS order_items (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			order_id INTEGER NOT NULL,
+			product_id INTEGER NOT NULL,
+			quantity INTEGER NOT NULL,
+			unit_price REAL NOT NULL,
+			FOREIGN KEY (order_id) REFERENCES orders(id),
+			FOREIGN KEY (product_id) REFERENCES products(id)
+		)`,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create order_items table: %w", err)
 	}
 
 	// Seed customers
@@ -155,6 +237,7 @@ func setupTestData() error {
 		{"name": "Alice Smith", "email": "alice@example.com", "status": "active"},
 		{"name": "Bob Johnson", "email": "bob@example.com", "status": "pending"},
 		{"name": "Carol White", "email": "carol@example.com", "status": "active"},
+		{"name": "David Brown", "email": "david@example.com", "status": "active"},
 	}
 
 	for _, c := range customers {
@@ -167,12 +250,70 @@ func setupTestData() error {
 		}
 	}
 
+	// Seed products
+	products := []map[string]interface{}{
+		{"name": "Widget A", "price": 29.99, "stock_quantity": 100, "category": "widgets"},
+		{"name": "Widget B", "price": 49.99, "stock_quantity": 50, "category": "widgets"},
+		{"name": "Gadget A", "price": 99.99, "stock_quantity": 30, "category": "gadgets"},
+		{"name": "Gadget B", "price": 149.99, "stock_quantity": 20, "category": "gadgets"},
+		{"name": "Tool X", "price": 199.99, "stock_quantity": 15, "category": "tools"},
+	}
+
+	for _, p := range products {
+		_, err := registry.Call("create_record", map[string]interface{}{
+			"table": "products",
+			"data":  p,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create product: %w", err)
+		}
+	}
+
+	// Seed orders
+	orders := []map[string]interface{}{
+		{"customer_id": 1, "status": "completed"},
+		{"customer_id": 1, "status": "completed"},
+		{"customer_id": 3, "status": "completed"},
+		{"customer_id": 4, "status": "pending"},
+	}
+
+	for _, o := range orders {
+		_, err := registry.Call("create_record", map[string]interface{}{
+			"table": "orders",
+			"data":  o,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create order: %w", err)
+		}
+	}
+
+	// Seed order_items
+	orderItems := []map[string]interface{}{
+		{"order_id": 1, "product_id": 1, "quantity": 3, "unit_price": 29.99},
+		{"order_id": 1, "product_id": 3, "quantity": 1, "unit_price": 99.99},
+		{"order_id": 2, "product_id": 2, "quantity": 2, "unit_price": 49.99},
+		{"order_id": 3, "product_id": 4, "quantity": 1, "unit_price": 149.99},
+		{"order_id": 3, "product_id": 5, "quantity": 1, "unit_price": 199.99},
+		{"order_id": 4, "product_id": 1, "quantity": 5, "unit_price": 29.99},
+	}
+
+	for _, oi := range orderItems {
+		_, err := registry.Call("create_record", map[string]interface{}{
+			"table": "order_items",
+			"data":  oi,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to create order item: %w", err)
+		}
+	}
+
 	return nil
 }
 
 func runCodeModeBenchmark(apiKey string, prompt string) BenchmarkResult {
 	start := time.Now()
 	registry := sqlitetools.NewRegistry()
+	var auditLog []AuditEntry
 
 	// Build system prompt with available tools for CodeMode
 	systemPrompt := buildCodeModeSystemPrompt(registry)
@@ -180,15 +321,35 @@ func runCodeModeBenchmark(apiKey string, prompt string) BenchmarkResult {
 	fullPrompt := systemPrompt + "\n\nTask:\n" + prompt
 
 	// Single API call to generate code
+	auditLog = append(auditLog, AuditEntry{
+		Timestamp: time.Now(),
+		Type:      "api_call",
+		Details:   "Sending prompt to Claude for code generation",
+	})
+
 	resp, err := callClaude(apiKey, fullPrompt, nil)
 	if err != nil {
+		auditLog = append(auditLog, AuditEntry{
+			Timestamp: time.Now(),
+			Type:      "error",
+			Details:   fmt.Sprintf("API call failed: %s", err.Error()),
+		})
 		return BenchmarkResult{
 			Approach: "CodeMode",
 			Duration: time.Since(start),
 			Success:  false,
 			Error:    err.Error(),
+			AuditLog: auditLog,
 		}
 	}
+
+	auditLog = append(auditLog, AuditEntry{
+		Timestamp:    time.Now(),
+		Type:         "api_response",
+		Details:      "Received code generation response",
+		InputTokens:  resp.Usage.InputTokens,
+		OutputTokens: resp.Usage.OutputTokens,
+	})
 
 	// Extract generated code and count tool calls
 	generatedCode := ""
@@ -204,6 +365,13 @@ func runCodeModeBenchmark(apiKey string, prompt string) BenchmarkResult {
 		toolCalls = strings.Count(generatedCode, `Call("`)
 	}
 
+	// Log the tool calls found in generated code
+	auditLog = append(auditLog, AuditEntry{
+		Timestamp: time.Now(),
+		Type:      "code_analysis",
+		Details:   fmt.Sprintf("Generated code contains %d tool calls", toolCalls),
+	})
+
 	// Calculate cost (Claude Sonnet pricing: $3/MTok in, $15/MTok out)
 	inputCost := float64(resp.Usage.InputTokens) * 0.003 / 1000
 	outputCost := float64(resp.Usage.OutputTokens) * 0.015 / 1000
@@ -218,12 +386,15 @@ func runCodeModeBenchmark(apiKey string, prompt string) BenchmarkResult {
 		ToolCalls:     toolCalls,
 		Success:       true,
 		EstimatedCost: inputCost + outputCost,
+		AuditLog:      auditLog,
+		GeneratedCode: generatedCode,
 	}
 }
 
 func runToolCallingBenchmark(apiKey string, prompt string) BenchmarkResult {
 	start := time.Now()
 	registry := sqlitetools.NewRegistry()
+	var auditLog []AuditEntry
 
 	// Build tools for native tool calling
 	tools := buildTools(registry)
@@ -239,16 +410,36 @@ func runToolCallingBenchmark(apiKey string, prompt string) BenchmarkResult {
 	for {
 		apiCallCount++
 
+		auditLog = append(auditLog, AuditEntry{
+			Timestamp: time.Now(),
+			Type:      "api_call",
+			Details:   fmt.Sprintf("API call #%d", apiCallCount),
+		})
+
 		resp, err := callClaudeWithTools(apiKey, messages, tools)
 		if err != nil {
+			auditLog = append(auditLog, AuditEntry{
+				Timestamp: time.Now(),
+				Type:      "error",
+				Details:   fmt.Sprintf("API call failed: %s", err.Error()),
+			})
 			return BenchmarkResult{
 				Approach:     "ToolCalling",
 				Duration:     time.Since(start),
 				APICallCount: apiCallCount,
 				Success:      false,
 				Error:        err.Error(),
+				AuditLog:     auditLog,
 			}
 		}
+
+		auditLog = append(auditLog, AuditEntry{
+			Timestamp:    time.Now(),
+			Type:         "api_response",
+			Details:      fmt.Sprintf("Response #%d (stop_reason: %s)", apiCallCount, resp.StopReason),
+			InputTokens:  resp.Usage.InputTokens,
+			OutputTokens: resp.Usage.OutputTokens,
+		})
 
 		totalInputTokens += resp.Usage.InputTokens
 		totalOutputTokens += resp.Usage.OutputTokens
@@ -270,6 +461,16 @@ func runToolCallingBenchmark(apiKey string, prompt string) BenchmarkResult {
 				var args map[string]interface{}
 				json.Unmarshal(block.Input, &args)
 
+				argsJSON, _ := json.Marshal(args)
+
+				auditLog = append(auditLog, AuditEntry{
+					Timestamp: time.Now(),
+					Type:      "tool_call",
+					ToolName:  block.Name,
+					ToolArgs:  string(argsJSON),
+					Details:   fmt.Sprintf("Tool call #%d", toolCallCount),
+				})
+
 				result, err := registry.Call(block.Name, args)
 
 				var resultStr string
@@ -279,6 +480,19 @@ func runToolCallingBenchmark(apiKey string, prompt string) BenchmarkResult {
 					resultBytes, _ := json.Marshal(result)
 					resultStr = string(resultBytes)
 				}
+
+				// Truncate result for logging if too long
+				logResult := resultStr
+				if len(logResult) > 200 {
+					logResult = logResult[:200] + "..."
+				}
+
+				auditLog = append(auditLog, AuditEntry{
+					Timestamp:  time.Now(),
+					Type:       "tool_result",
+					ToolName:   block.Name,
+					ToolResult: logResult,
+				})
 
 				toolResults = append(toolResults, ContentBlock{
 					Type:      "tool_result",
@@ -309,6 +523,11 @@ func runToolCallingBenchmark(apiKey string, prompt string) BenchmarkResult {
 
 		// Safety limit
 		if apiCallCount > 20 {
+			auditLog = append(auditLog, AuditEntry{
+				Timestamp: time.Now(),
+				Type:      "warning",
+				Details:   "Reached safety limit of 20 API calls",
+			})
 			break
 		}
 	}
@@ -327,6 +546,7 @@ func runToolCallingBenchmark(apiKey string, prompt string) BenchmarkResult {
 		ToolCalls:     toolCallCount,
 		Success:       true,
 		EstimatedCost: inputCost + outputCost,
+		AuditLog:      auditLog,
 	}
 }
 
@@ -500,7 +720,7 @@ func printResult(r BenchmarkResult) {
 		status = "❌"
 	}
 
-	fmt.Printf("  %s %s:\n", status, r.Approach)
+	fmt.Printf("\n  %s %s:\n", status, r.Approach)
 	fmt.Printf("    Duration:     %v\n", r.Duration.Round(time.Millisecond))
 	fmt.Printf("    API Calls:    %d\n", r.APICallCount)
 	fmt.Printf("    Tool Calls:   %d\n", r.ToolCalls)
@@ -508,6 +728,68 @@ func printResult(r BenchmarkResult) {
 	fmt.Printf("    Est. Cost:    $%.4f\n", r.EstimatedCost)
 	if r.Error != "" {
 		fmt.Printf("    Error:        %s\n", r.Error)
+	}
+
+	// Print audit log
+	if len(r.AuditLog) > 0 {
+		fmt.Printf("\n    --- Audit Log ---\n")
+		for i, entry := range r.AuditLog {
+			timestamp := entry.Timestamp.Format("15:04:05.000")
+			switch entry.Type {
+			case "api_call":
+				fmt.Printf("    [%s] %d. API_CALL: %s\n", timestamp, i+1, entry.Details)
+			case "api_response":
+				fmt.Printf("    [%s] %d. API_RESPONSE: %s (tokens: in=%d, out=%d)\n",
+					timestamp, i+1, entry.Details, entry.InputTokens, entry.OutputTokens)
+			case "tool_call":
+				fmt.Printf("    [%s] %d. TOOL_CALL: %s\n", timestamp, i+1, entry.Details)
+				fmt.Printf("                    Tool: %s\n", entry.ToolName)
+				// Format args nicely
+				args := entry.ToolArgs
+				if len(args) > 100 {
+					args = args[:100] + "..."
+				}
+				fmt.Printf("                    Args: %s\n", args)
+			case "tool_result":
+				fmt.Printf("    [%s] %d. TOOL_RESULT: %s\n", timestamp, i+1, entry.ToolName)
+				fmt.Printf("                    Result: %s\n", entry.ToolResult)
+			case "code_analysis":
+				fmt.Printf("    [%s] %d. CODE_ANALYSIS: %s\n", timestamp, i+1, entry.Details)
+			case "error":
+				fmt.Printf("    [%s] %d. ERROR: %s\n", timestamp, i+1, entry.Details)
+			case "warning":
+				fmt.Printf("    [%s] %d. WARNING: %s\n", timestamp, i+1, entry.Details)
+			default:
+				fmt.Printf("    [%s] %d. %s: %s\n", timestamp, i+1, entry.Type, entry.Details)
+			}
+		}
+		fmt.Println()
+	}
+
+	// Print generated code for CodeMode (truncated)
+	if r.GeneratedCode != "" {
+		fmt.Printf("    --- Generated Code (truncated) ---\n")
+		code := r.GeneratedCode
+		lines := strings.Split(code, "\n")
+		maxLines := 30
+		if len(lines) > maxLines {
+			for i := 0; i < maxLines; i++ {
+				line := lines[i]
+				if len(line) > 100 {
+					line = line[:100] + "..."
+				}
+				fmt.Printf("    %s\n", line)
+			}
+			fmt.Printf("    ... (%d more lines)\n", len(lines)-maxLines)
+		} else {
+			for _, line := range lines {
+				if len(line) > 100 {
+					line = line[:100] + "..."
+				}
+				fmt.Printf("    %s\n", line)
+			}
+		}
+		fmt.Println()
 	}
 }
 

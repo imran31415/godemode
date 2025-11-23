@@ -517,6 +517,95 @@ func main() {
 
 Note: The `registry` variable is injected by the Yaegi interpreter with access to all Excel tools.
 
+## Advanced Invoice Analysis Scenario
+
+This scenario tests multi-dimensional revenue analysis on a realistic 100-invoice dataset.
+
+### Dataset Structure
+
+**Invoices Sheet (100 rows):**
+- InvoiceID, Date, CustomerID, Product, Category, Region, Quantity, UnitPrice, Total
+
+**Customers Sheet (20 rows):**
+- CustomerID, CustomerName, Segment (Enterprise/SMB/Startup)
+
+### Task Requirements
+
+1. Read and analyze Invoices and Customers data
+2. Create **Summary** sheet with Total Revenue, Invoice Count, Average, Max
+3. Create **ByRegion** sheet (North/South/East/West breakdown)
+4. Create **ByCategory** sheet (Electronics/Software/Services/Hardware)
+5. Create **BySegment** sheet (Enterprise/SMB/Startup)
+6. Create **TopCustomers** sheet (top customers by spend)
+7. Create **MonthlyTrend** sheet (Jan-Dec 2024)
+
+### Results
+
+| Metric | CodeMode | Tool Calling | Improvement |
+|--------|----------|--------------|-------------|
+| **Duration** | 60.7s | 85.1s | **1.40x faster** |
+| **API Calls** | 1 | 21 | 21x fewer |
+| **Tool Calls** | 44 | 21 | More thorough |
+| **Input Tokens** | 1,258 | 159,257 | **99.2% fewer** |
+| **Output Tokens** | 6,807 | 5,118 | Similar |
+| **Total Tokens** | 8,065 | 164,375 | **95.1% fewer** |
+| **Estimated Cost** | $0.105 | $0.555 | **81.1% cheaper** |
+
+### Generated Excel Preview
+
+Here's a sample of the actual generated Excel output showing the analysis sheets with formulas:
+
+**Summary Sheet:**
+```
+| Metric              | Value                    |
+|---------------------|--------------------------|
+| Total Revenue       | =SUM(Invoices.I:I)       |
+| Total Invoices      | =COUNTA(Invoices.A:A)-1  |
+| Average Invoice     | =AVERAGE(Invoices.I:I)   |
+```
+
+**ByRegion Sheet:**
+```
+| Region | TotalRevenue                           | InvoiceCount                    | AvgInvoice                              |
+|--------|----------------------------------------|---------------------------------|-----------------------------------------|
+| North  | =SUMIF(Invoices.F:F,"North",Invoices.I:I) | =COUNTIF(Invoices.F:F,"North") | =AVERAGEIF(Invoices.F:F,"North",Invoices.I:I) |
+| South  | =SUMIF(Invoices.F:F,"South",Invoices.I:I) | =COUNTIF(Invoices.F:F,"South") | =AVERAGEIF(Invoices.F:F,"South",Invoices.I:I) |
+| East   | =SUMIF(Invoices.F:F,"East",Invoices.I:I)  | =COUNTIF(Invoices.F:F,"East")  | =AVERAGEIF(Invoices.F:F,"East",Invoices.I:I)  |
+| West   | =SUMIF(Invoices.F:F,"West",Invoices.I:I)  | =COUNTIF(Invoices.F:F,"West")  | =AVERAGEIF(Invoices.F:F,"West",Invoices.I:I)  |
+```
+
+**ByCategory Sheet:**
+```
+| Category    | TotalRevenue                                  | InvoiceCount                        |
+|-------------|-----------------------------------------------|-------------------------------------|
+| Electronics | =SUMIF(Invoices.E:E,"Electronics",Invoices.I:I) | =COUNTIF(Invoices.E:E,"Electronics") |
+| Software    | =SUMIF(Invoices.E:E,"Software",Invoices.I:I)    | =COUNTIF(Invoices.E:E,"Software")    |
+| Services    | =SUMIF(Invoices.E:E,"Services",Invoices.I:I)    | =COUNTIF(Invoices.E:E,"Services")    |
+| Hardware    | =SUMIF(Invoices.E:E,"Hardware",Invoices.I:I)    | =COUNTIF(Invoices.E:E,"Hardware")    |
+```
+
+**TopCustomers Sheet:**
+```
+| CustomerID | CustomerName                         | Segment                              | TotalSpent                          |
+|------------|--------------------------------------|--------------------------------------|-------------------------------------|
+| CUST001    | =VLOOKUP(A2,Customers.A:B,2,FALSE)   | =VLOOKUP(A2,Customers.A:C,3,FALSE)   | =SUMIF(Invoices.C:C,A2,Invoices.I:I) |
+| CUST002    | =VLOOKUP(A3,Customers.A:B,2,FALSE)   | =VLOOKUP(A3,Customers.A:C,3,FALSE)   | =SUMIF(Invoices.C:C,A3,Invoices.I:I) |
+| ...        | ...                                  | ...                                  | ...                                 |
+```
+
+### Expected Values (Validation)
+
+- **Total Revenue**: $170,497.70
+- **Total Invoices**: 100
+- **Average Invoice**: $1,704.98
+- **Max Invoice**: $3,999.95
+
+### Output Files
+
+The generated Excel files are saved for review:
+- `results/invoice_analysis_codemode.xlsx`
+- `results/invoice_analysis_toolcalling.xlsx`
+
 ## Sources
 
 - [haris-musa/excel-mcp-server](https://github.com/haris-musa/excel-mcp-server) - Original Python MCP server inspiration

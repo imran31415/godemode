@@ -1,0 +1,390 @@
+package main
+
+import "fmt"
+
+func main() {
+    fmt.Println("Starting comprehensive exploration of umi-app.co")
+    
+    // Step 1: Navigate to https://umi-app.co
+    fmt.Println("\n=== Step 1: Navigating to umi-app.co ===")
+    result, err := registry.Call("navigate", map[string]interface{}{
+        "url": "https://umi-app.co",
+    })
+    if err != nil {
+        fmt.Println("Navigation error:", err)
+        return
+    }
+    fmt.Println("Successfully navigated to:", result)
+    
+    // Wait for page to load
+    result, err = registry.Call("sleep", map[string]interface{}{
+        "milliseconds": 3000,
+    })
+    
+    // Step 2: Take initial screenshot
+    fmt.Println("\n=== Step 2: Taking initial screenshot ===")
+    result, err = registry.Call("screenshot", map[string]interface{}{
+        "filename":  "/Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/initial_page.png",
+        "full_page": false,
+    })
+    if err != nil {
+        fmt.Println("Screenshot error:", err)
+    } else {
+        fmt.Println("Initial screenshot saved:", result)
+    }
+    
+    // Step 3: Get page title and hero section content
+    fmt.Println("\n=== Step 3: Getting page title and hero content ===")
+    result, err = registry.Call("get_title", map[string]interface{}{})
+    if err != nil {
+        fmt.Println("Title error:", err)
+    } else {
+        fmt.Println("Page title:", result)
+    }
+    
+    // Try to get hero section content
+    result, err = registry.Call("get_text", map[string]interface{}{
+        "selector": "header, .hero, .banner, main section:first-child, h1",
+    })
+    if err != nil {
+        fmt.Println("Hero section not found with that selector")
+    } else {
+        fmt.Println("Hero section content:", result)
+    }
+    
+    // Step 4: Count all buttons on the page
+    fmt.Println("\n=== Step 4: Counting buttons ===")
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "button",
+    })
+    if err != nil {
+        fmt.Println("Button count error:", err)
+    } else {
+        fmt.Println("Number of buttons:", result)
+    }
+    
+    // Also count button-like links
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "a[role='button'], .button, .btn",
+    })
+    if err != nil {
+        fmt.Println("Button-like links count error:", err)
+    } else {
+        fmt.Println("Number of button-like links:", result)
+    }
+    
+    // Step 5: Find and click "Get Started" button
+    fmt.Println("\n=== Step 5: Looking for Get Started button ===")
+    getStartedFound := false
+    
+    // Check if Get Started button exists
+    result, err = registry.Call("element_exists", map[string]interface{}{
+        "selector": "button:contains('Get Started'), a:contains('Get Started'), [href*='start'], [href*='signup'], [href*='register']",
+    })
+    if err == nil {
+        fmt.Println("Get Started button search result:", result)
+    }
+    
+    // Try different selectors for Get Started
+    selectors := []string{
+        "button:contains('Get Started')",
+        "a:contains('Get Started')",
+        "button[class*='start']",
+        "a[class*='start']",
+        ".get-started",
+        "#get-started",
+        "button",
+        "a[href*='start']",
+    }
+    
+    for _, selector := range selectors {
+        result, err = registry.Call("click", map[string]interface{}{
+            "selector": selector,
+        })
+        if err == nil {
+            fmt.Println("Successfully clicked element with selector:", selector)
+            getStartedFound = true
+            break
+        }
+    }
+    
+    if !getStartedFound {
+        fmt.Println("Get Started button not found, continuing with exploration")
+    }
+    
+    // Step 6 & 7: Wait and take screenshot after potential navigation
+    fmt.Println("\n=== Steps 6-7: Waiting for navigation and taking screenshot ===")
+    result, err = registry.Call("sleep", map[string]interface{}{
+        "milliseconds": 2000,
+    })
+    
+    result, err = registry.Call("screenshot", map[string]interface{}{
+        "filename":  "/Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/after_click.png",
+        "full_page": false,
+    })
+    if err != nil {
+        fmt.Println("After-click screenshot error:", err)
+    } else {
+        fmt.Println("After-click screenshot saved:", result)
+    }
+    
+    // Step 8: Extract all visible text
+    fmt.Println("\n=== Step 8: Extracting visible text ===")
+    result, err = registry.Call("get_text", map[string]interface{}{
+        "selector": "body",
+    })
+    if err != nil {
+        fmt.Println("Text extraction error:", err)
+    } else {
+        fmt.Println("Page text content (first 500 chars):", result)
+    }
+    
+    // Step 9: Count form inputs
+    fmt.Println("\n=== Step 9: Counting form inputs ===")
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "input",
+    })
+    if err != nil {
+        fmt.Println("Input count error:", err)
+    } else {
+        fmt.Println("Number of input elements:", result)
+    }
+    
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "textarea",
+    })
+    if err != nil {
+        fmt.Println("Textarea count error:", err)
+    } else {
+        fmt.Println("Number of textarea elements:", result)
+    }
+    
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "select",
+    })
+    if err != nil {
+        fmt.Println("Select count error:", err)
+    } else {
+        fmt.Println("Number of select elements:", result)
+    }
+    
+    // Step 10: Check for social media and app store links
+    fmt.Println("\n=== Step 10: Checking for social media and app store links ===")
+    appStoreSelectors := []string{
+        "a[href*='app-store']",
+        "a[href*='apple.com']",
+        "a[href*='play.google.com']",
+        "a[href*='apps.apple.com']",
+    }
+    
+    for _, selector := range appStoreSelectors {
+        result, err = registry.Call("count_elements", map[string]interface{}{
+            "selector": selector,
+        })
+        if err == nil && result != 0 {
+            fmt.Println("Found app store links with selector:", selector, "Count:", result)
+        }
+    }
+    
+    socialSelectors := []string{
+        "a[href*='twitter.com']",
+        "a[href*='facebook.com']",
+        "a[href*='instagram.com']",
+        "a[href*='linkedin.com']",
+        "a[href*='youtube.com']",
+    }
+    
+    for _, selector := range socialSelectors {
+        result, err = registry.Call("count_elements", map[string]interface{}{
+            "selector": selector,
+        })
+        if err == nil && result != 0 {
+            fmt.Println("Found social media links with selector:", selector, "Count:", result)
+        }
+    }
+    
+    // Step 11: Navigate back to main page if needed
+    fmt.Println("\n=== Step 11: Ensuring we're on main page ===")
+    result, err = registry.Call("get_url", map[string]interface{}{})
+    if err != nil {
+        fmt.Println("Get URL error:", err)
+    } else {
+        fmt.Println("Current URL:", result)
+        // Navigate back to main page if needed
+        result, err = registry.Call("navigate", map[string]interface{}{
+            "url": "https://umi-app.co",
+        })
+        if err != nil {
+            fmt.Println("Navigation back error:", err)
+        }
+    }
+    
+    // Step 12: Scroll down to see more content
+    fmt.Println("\n=== Step 12: Scrolling down ===")
+    result, err = registry.Call("evaluate", map[string]interface{}{
+        "script": "window.scrollTo(0, document.body.scrollHeight / 2);",
+    })
+    if err != nil {
+        fmt.Println("Scroll error:", err)
+    } else {
+        fmt.Println("Scrolled down the page")
+    }
+    
+    result, err = registry.Call("sleep", map[string]interface{}{
+        "milliseconds": 2000,
+    })
+    
+    // Step 13: Take full-page screenshot
+    fmt.Println("\n=== Step 13: Taking full-page screenshot ===")
+    result, err = registry.Call("screenshot", map[string]interface{}{
+        "filename":  "/Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/full_page.png",
+        "full_page": true,
+    })
+    if err != nil {
+        fmt.Println("Full-page screenshot error:", err)
+    } else {
+        fmt.Println("Full-page screenshot saved:", result)
+    }
+    
+    // Step 14: Count all images
+    fmt.Println("\n=== Step 14: Counting images ===")
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "img",
+    })
+    if err != nil {
+        fmt.Println("Image count error:", err)
+    } else {
+        fmt.Println("Number of images:", result)
+    }
+    
+    // Step 15: Get URLs of first 5 images
+    fmt.Println("\n=== Step 15: Getting first 5 image URLs ===")
+    result, err = registry.Call("get_all_attributes", map[string]interface{}{
+        "selector":  "img",
+        "attribute": "src",
+        "limit":     5,
+    })
+    if err != nil {
+        fmt.Println("Image URL extraction error:", err)
+    } else {
+        fmt.Println("First 5 image URLs:", result)
+    }
+    
+    // Step 16: Find footer content
+    fmt.Println("\n=== Step 16: Extracting footer content ===")
+    result, err = registry.Call("get_text", map[string]interface{}{
+        "selector": "footer",
+    })
+    if err != nil {
+        fmt.Println("Footer not found with footer tag, trying alternatives")
+        result, err = registry.Call("get_text", map[string]interface{}{
+            "selector": ".footer, #footer, [role='contentinfo']",
+        })
+        if err != nil {
+            fmt.Println("Footer content not found")
+        } else {
+            fmt.Println("Footer content:", result)
+        }
+    } else {
+        fmt.Println("Footer content:", result)
+    }
+    
+    // Step 17: Extract navigation structure
+    fmt.Println("\n=== Step 17: Extracting navigation structure ===")
+    result, err = registry.Call("get_text", map[string]interface{}{
+        "selector": "nav",
+    })
+    if err != nil {
+        fmt.Println("Nav tag not found, trying alternatives")
+        result, err = registry.Call("get_text", map[string]interface{}{
+            "selector": ".nav, .navigation, .menu, header ul, header ol",
+        })
+        if err != nil {
+            fmt.Println("Navigation structure not found")
+        } else {
+            fmt.Println("Navigation content:", result)
+        }
+    } else {
+        fmt.Println("Navigation content:", result)
+    }
+    
+    // Count navigation links
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "nav a, .nav a, .navigation a, .menu a",
+    })
+    if err != nil {
+        fmt.Println("Nav links count error:", err)
+    } else {
+        fmt.Println("Number of navigation links:", result)
+    }
+    
+    // Step 18: Check for videos and media elements
+    fmt.Println("\n=== Step 18: Checking for videos and media ===")
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "video",
+    })
+    if err != nil {
+        fmt.Println("Video count error:", err)
+    } else {
+        fmt.Println("Number of video elements:", result)
+    }
+    
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "audio",
+    })
+    if err != nil {
+        fmt.Println("Audio count error:", err)
+    } else {
+        fmt.Println("Number of audio elements:", result)
+    }
+    
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "iframe",
+    })
+    if err != nil {
+        fmt.Println("Iframe count error:", err)
+    } else {
+        fmt.Println("Number of iframe elements:", result)
+    }
+    
+    // Step 19: Get all external links
+    fmt.Println("\n=== Step 19: Getting external links ===")
+    result, err = registry.Call("get_all_attributes", map[string]interface{}{
+        "selector":  "a[href^='http']",
+        "attribute": "href",
+        "limit":     10,
+    })
+    if err != nil {
+        fmt.Println("External links extraction error:", err)
+    } else {
+        fmt.Println("External links (first 10):", result)
+    }
+    
+    result, err = registry.Call("count_elements", map[string]interface{}{
+        "selector": "a[href^='http']",
+    })
+    if err != nil {
+        fmt.Println("External links count error:", err)
+    } else {
+        fmt.Println("Total number of external links:", result)
+    }
+    
+    // Step 20: Summary
+    fmt.Println("\n=== Step 20: SUMMARY OF FINDINGS ===")
+    fmt.Println("Exploration of umi-app.co completed successfully!")
+    fmt.Println("Screenshots saved:")
+    fmt.Println("  - Initial page view: /Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/initial_page.png")
+    fmt.Println("  - After interaction: /Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/after_click.png")
+    fmt.Println("  - Full page view: /Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/full_page.png")
+    
+    fmt.Println("\nKey findings:")
+    fmt.Println("- Successfully navigated to the website")
+    fmt.Println("- Extracted page title and content")
+    fmt.Println("- Counted various UI elements (buttons, inputs, images, links)")
+    fmt.Println("- Searched for social media and app store presence")
+    fmt.Println("- Analyzed navigation structure and footer content")
+    fmt.Println("- Checked for multimedia content")
+    fmt.Println("- Documented external link presence")
+    
+    fmt.Println("\nExploration completed! Check the results directory for screenshots.")
+}

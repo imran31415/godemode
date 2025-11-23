@@ -1,0 +1,212 @@
+package main
+
+import "fmt"
+
+func main() {
+    // Step 1: Navigate to GitHub login page
+    fmt.Println("Step 1: Navigating to GitHub login page...")
+    result, err := registry.Call("navigate", map[string]interface{}{
+        "url": "https://github.com/login",
+    })
+    if err != nil {
+        fmt.Println("Navigation error:", err)
+        return
+    }
+    fmt.Println("Navigation result:", result)
+
+    // Step 2: Wait for the login form to load
+    fmt.Println("Step 2: Waiting for login form to load...")
+    result, err = registry.Call("wait_for_selector", map[string]interface{}{
+        "selector": "#login_field",
+        "timeout":  15,
+    })
+    if err != nil {
+        fmt.Println("Wait for login form error:", err)
+        return
+    }
+    fmt.Println("Login form loaded successfully")
+
+    // Get current URL to verify we're on the right page
+    result, err = registry.Call("get_url", map[string]interface{}{})
+    if err != nil {
+        fmt.Println("Get URL error:", err)
+    } else {
+        fmt.Println("Current URL:", result)
+    }
+
+    // Step 3: Take screenshot of the login page
+    fmt.Println("Step 3: Taking screenshot of login page...")
+    result, err = registry.Call("screenshot", map[string]interface{}{
+        "filename":  "/Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/github_login_page.png",
+        "full_page": true,
+    })
+    if err != nil {
+        fmt.Println("Screenshot error:", err)
+    } else {
+        fmt.Println("Login page screenshot saved:", result)
+    }
+
+    // Step 4: Enter username in the login_field
+    fmt.Println("Step 4: Entering username...")
+    result, err = registry.Call("type", map[string]interface{}{
+        "selector": "#login_field",
+        "text":     "imoran21@gmail.com",
+    })
+    if err != nil {
+        fmt.Println("Username input error:", err)
+        return
+    }
+    fmt.Println("Username entered successfully")
+
+    // Step 5: Enter password in the password field
+    fmt.Println("Step 5: Entering password...")
+    result, err = registry.Call("type", map[string]interface{}{
+        "selector": "#password",
+        "text":     "WHO2like21!",
+    })
+    if err != nil {
+        fmt.Println("Password input error:", err)
+        return
+    }
+    fmt.Println("Password entered successfully")
+
+    // Step 6: Take screenshot of filled form
+    fmt.Println("Step 6: Taking screenshot of filled form...")
+    result, err = registry.Call("screenshot", map[string]interface{}{
+        "filename":  "/Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/github_form_filled.png",
+        "full_page": true,
+    })
+    if err != nil {
+        fmt.Println("Screenshot error:", err)
+    } else {
+        fmt.Println("Filled form screenshot saved:", result)
+    }
+
+    // Step 7: Click the Sign in button
+    fmt.Println("Step 7: Clicking Sign in button...")
+    result, err = registry.Call("click", map[string]interface{}{
+        "selector": "input[name='commit']",
+    })
+    if err != nil {
+        fmt.Println("Sign in button click error:", err)
+        return
+    }
+    fmt.Println("Sign in button clicked")
+
+    // Step 8: Wait for response (page navigation or error)
+    fmt.Println("Step 8: Waiting for login response...")
+    result, err = registry.Call("sleep", map[string]interface{}{
+        "milliseconds": 3000,
+    })
+    if err != nil {
+        fmt.Println("Sleep error:", err)
+    }
+
+    // Get the current URL after login attempt
+    result, err = registry.Call("get_url", map[string]interface{}{})
+    if err != nil {
+        fmt.Println("Get URL error:", err)
+    } else {
+        fmt.Println("URL after login attempt:", result)
+    }
+
+    // Step 9: Take screenshot of result page
+    fmt.Println("Step 9: Taking screenshot of result page...")
+    result, err = registry.Call("screenshot", map[string]interface{}{
+        "filename":  "/Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/github_result.png",
+        "full_page": true,
+    })
+    if err != nil {
+        fmt.Println("Result screenshot error:", err)
+    } else {
+        fmt.Println("Result page screenshot saved:", result)
+    }
+
+    // Step 10: Check if login was successful or if there was an error
+    fmt.Println("Step 10: Checking login status...")
+
+    // Check for error messages on the login page
+    result, err = registry.Call("element_exists", map[string]interface{}{
+        "selector": ".flash-error, .js-flash-alert, [data-test-selector='alert-error'], .alert-error",
+    })
+    if err != nil {
+        fmt.Println("Error checking for error messages:", err)
+    } else {
+        if result == true {
+            fmt.Println("ERROR DETECTED: Login failed - error message present on page")
+            // Try to get the error text
+            errorResult, errorErr := registry.Call("get_text", map[string]interface{}{
+                "selector": ".flash-error, .js-flash-alert, [data-test-selector='alert-error'], .alert-error",
+            })
+            if errorErr == nil {
+                fmt.Println("Error message:", errorResult)
+            }
+        } else {
+            fmt.Println("No error messages found")
+        }
+    }
+
+    // Check if we're redirected to dashboard/home (success indicator)
+    result, err = registry.Call("get_url", map[string]interface{}{})
+    if err != nil {
+        fmt.Println("Error getting current URL:", err)
+    } else {
+        currentURL := fmt.Sprintf("%v", result)
+        if currentURL == "https://github.com/" || currentURL == "https://github.com/dashboard" {
+            fmt.Println("SUCCESS: Login successful - redirected to GitHub dashboard")
+        } else if currentURL == "https://github.com/login" || currentURL == "https://github.com/session" {
+            fmt.Println("FAILED: Still on login page - login unsuccessful")
+        } else {
+            fmt.Println("UNKNOWN: Redirected to unexpected page:", currentURL)
+        }
+    }
+
+    // Check for user profile elements (another success indicator)
+    result, err = registry.Call("element_exists", map[string]interface{}{
+        "selector": "[data-test-selector='user-profile'], .Header-link--profile, .user-profile-link",
+    })
+    if err != nil {
+        fmt.Println("Error checking for user profile:", err)
+    } else {
+        if result == true {
+            fmt.Println("SUCCESS: User profile elements found - login successful")
+        } else {
+            fmt.Println("No user profile elements detected")
+        }
+    }
+
+    // Get page title for additional context
+    result, err = registry.Call("get_title", map[string]interface{}{})
+    if err != nil {
+        fmt.Println("Error getting page title:", err)
+    } else {
+        fmt.Println("Current page title:", result)
+    }
+
+    // Step 11: Final report
+    fmt.Println("\n=== FINAL REPORT ===")
+    fmt.Println("Login attempt completed")
+    fmt.Println("Username used: imoran21@gmail.com")
+    fmt.Println("All screenshots saved to: /Users/arsheenali/dev/godemode/puppeteer-mcp-benchmark/results/")
+    fmt.Println("- github_login_page.png: Initial login page")
+    fmt.Println("- github_form_filled.png: Form with credentials filled")
+    fmt.Println("- github_result.png: Result page after login attempt")
+    
+    // Final URL check
+    result, err = registry.Call("get_url", map[string]interface{}{})
+    if err != nil {
+        fmt.Println("Final URL check error:", err)
+    } else {
+        fmt.Println("Final URL:", result)
+        currentURL := fmt.Sprintf("%v", result)
+        if currentURL == "https://github.com/" {
+            fmt.Println("STATUS: LOGIN SUCCESSFUL - User authenticated and redirected to GitHub homepage")
+        } else if currentURL == "https://github.com/login" {
+            fmt.Println("STATUS: LOGIN FAILED - Still on login page, credentials may be incorrect")
+        } else {
+            fmt.Println("STATUS: INDETERMINATE - Unexpected final URL")
+        }
+    }
+    
+    fmt.Println("=== END REPORT ===")
+}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -18,9 +19,10 @@ import (
 // InterpreterExecutor runs Go code directly using yaegi interpreter
 // This eliminates the WASM compilation overhead (~2-3s) completely
 type InterpreterExecutor struct {
-	validator      *validator.Validator
-	defaultTimeout time.Duration
+	validator       *validator.Validator
+	defaultTimeout  time.Duration
 	interpreterPool *interpreterPool
+	customSymbols   map[string]map[string]interface{}
 }
 
 // interpreterPool maintains a pool of reusable yaegi interpreters
@@ -231,4 +233,142 @@ func (e *InterpreterExecutor) ExecuteSimple(sourceCode string) (*ExecutionResult
 // SetDefaultTimeout sets the default execution timeout
 func (e *InterpreterExecutor) SetDefaultTimeout(timeout time.Duration) {
 	e.defaultTimeout = timeout
+}
+
+// SetCustomSymbols sets custom symbols that will be available to executed code
+// The symbols map should be: package path -> symbol name -> value
+// Example: map[string]map[string]interface{}{"main/main": {"myFunc": myFunction}}
+func (e *InterpreterExecutor) SetCustomSymbols(symbols map[string]map[string]interface{}) {
+	e.customSymbols = symbols
+}
+
+// ExecuteWithSymbols executes code with custom symbols injected
+// This is useful for providing tool registries or other external dependencies
+func (e *InterpreterExecutor) ExecuteWithSymbols(ctx context.Context, sourceCode string, timeout time.Duration, symbols map[string]map[string]interface{}) (*ExecutionResult, error) {
+	startTime := time.Now()
+
+	if timeout == 0 {
+		timeout = e.defaultTimeout
+	}
+
+	// Skip validation for code with external dependencies
+	// The validator may not understand custom symbols
+
+	// Execute with custom symbols
+	result, err := e.executeWithCustomSymbols(ctx, sourceCode, timeout, symbols)
+	result.Duration = time.Since(startTime)
+
+	return result, err
+}
+
+// ExecuteGeneratedCode is a high-level API for executing LLM-generated code
+// It handles markdown extraction, code preprocessing, and registry injection
+func (e *InterpreterExecutor) ExecuteGeneratedCode(ctx context.Context, rawCode string, timeout time.Duration, registryCall func(string, map[string]interface{}) (interface{}, error)) (*ExecutionResult, error) {
+	// Preprocess the code
+	preprocessor := NewCodePreprocessor()
+	processedCode := preprocessor.Process(rawCode, "registryCall")
+
+	// Validate basic structure
+	if err := preprocessor.ValidateBasicStructure(processedCode); err != "" {
+		return &ExecutionResult{
+			Success: false,
+			Error:   "code validation failed: " + err,
+		}, nil
+	}
+
+	// Create symbols map with the registry call function
+	symbols := map[string]map[string]interface{}{
+		"main/main": {
+			"registryCall": registryCall,
+		},
+	}
+
+	// Execute with the injected symbols
+	return e.ExecuteWithSymbols(ctx, processedCode, timeout, symbols)
+}
+
+// executeWithCustomSymbols runs code with custom symbols injected
+func (e *InterpreterExecutor) executeWithCustomSymbols(ctx context.Context, sourceCode string, timeout time.Duration, symbols map[string]map[string]interface{}) (*ExecutionResult, error) {
+	result := &ExecutionResult{
+		Success: false,
+	}
+
+	execCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// Create fresh interpreter (don't use pool for custom symbols)
+	i := interp.New(interp.Options{})
+	i.Use(stdlib.Symbols)
+
+	// Inject custom symbols
+	if symbols != nil {
+		reflectSymbols := make(map[string]map[string]reflect.Value)
+		for pkg, syms := range symbols {
+			reflectSymbols[pkg] = make(map[string]reflect.Value)
+			for name, val := range syms {
+				reflectSymbols[pkg][name] = reflect.ValueOf(val)
+			}
+		}
+		i.Use(reflectSymbols)
+	}
+
+	// Capture stdout and stderr
+	var stdout, stderr bytes.Buffer
+	originalStdout := os.Stdout
+	originalStderr := os.Stderr
+
+	stdoutR, stdoutW, _ := os.Pipe()
+	stderrR, stderrW, _ := os.Pipe()
+
+	os.Stdout = stdoutW
+	os.Stderr = stderrW
+
+	done := make(chan error, 1)
+
+	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				done <- fmt.Errorf("panic: %v", r)
+			}
+		}()
+
+		_, err := i.Eval(sourceCode)
+		done <- err
+	}()
+
+	go func() {
+		io.Copy(&stdout, stdoutR)
+	}()
+	go func() {
+		io.Copy(&stderr, stderrR)
+	}()
+
+	var err error
+	select {
+	case err = <-done:
+	case <-execCtx.Done():
+		err = execCtx.Err()
+	}
+
+	stdoutW.Close()
+	stderrW.Close()
+	os.Stdout = originalStdout
+	os.Stderr = originalStderr
+
+	time.Sleep(10 * time.Millisecond)
+
+	stdoutR.Close()
+	stderrR.Close()
+
+	result.Stdout = stdout.String()
+	result.Stderr = stderr.String()
+
+	if err != nil {
+		execErr := e.classifyExecutionError(err)
+		result.Error = execErr.Message
+		return result, execErr
+	}
+
+	result.Success = true
+	return result, nil
 }

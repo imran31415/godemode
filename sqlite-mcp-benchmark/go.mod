@@ -5,7 +5,7 @@ go 1.24.9
 replace github.com/imran31415/godemode => ../
 
 require (
-	github.com/anthropics/anthropic-sdk-go v1.18.1
+	github.com/imran31415/godemode v0.0.0-20251122211209-98354182c0d9
 	modernc.org/sqlite v1.40.1
 )
 
@@ -15,10 +15,8 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v0.1.9 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
-	github.com/tidwall/gjson v1.18.0 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.1 // indirect
-	github.com/tidwall/sjson v1.2.5 // indirect
+	github.com/tetratelabs/wazero v1.9.0 // indirect
+	github.com/traefik/yaegi v0.16.1 // indirect
 	golang.org/x/exp v0.0.0-20250620022241-b7579e27df2b // indirect
 	golang.org/x/sys v0.36.0 // indirect
 	modernc.org/libc v1.66.10 // indirect

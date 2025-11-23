@@ -17,19 +17,27 @@ The benchmark tests whether CodeMode allows the LLM to achieve **greater complex
 
 | Metric | CodeMode | Tool Calling | Improvement |
 |--------|----------|--------------|-------------|
-| **Duration** | 8.9s | 17.1s | **1.92x faster** |
-| **API Calls** | 1 | 6 | 6x fewer |
-| **Tokens** | 1,345 | 9,416 | **85.7% fewer** |
-| **Cost** | $0.013 | $0.037 | **64.8% cheaper** |
+| **Duration** | 16.1s | 22.7s | **1.41x faster** |
+| **API Calls** | 1 | 7 | 7x fewer |
+| **Tokens** | 2,191 | 12,087 | **81.9% fewer** |
+| **Cost** | $0.024 | $0.046 | **48% cheaper** |
 
-### Complex Scenario (19 tool calls)
+### Complex Scenario (9-19 tool calls)
 
 | Metric | CodeMode | Tool Calling | Improvement |
 |--------|----------|--------------|-------------|
-| **Duration** | 37.1s | 50.3s | **1.35x faster** |
+| **Duration** | 42.0s | 55.7s | **1.32x faster** |
 | **API Calls** | 1 | 13 | 13x fewer |
-| **Tokens** | 4,187 | 44,002 | **90.5% fewer** |
-| **Cost** | $0.054 | $0.163 | **66.6% cheaper** |
+| **Tokens** | 5,111 | 45,615 | **88.8% fewer** |
+| **Cost** | $0.067 | $0.172 | **61.2% cheaper** |
+
+## Execution Architecture
+
+CodeMode uses the Yaegi Go interpreter to execute LLM-generated code. The core implementation is in `pkg/executor/`:
+
+- **`interpreter_executor.go`** - Main execution engine with timeout and output capture
+- **`preprocessor.go`** - Handles markdown extraction and code transformation
+- **`ExecuteGeneratedCode()`** - High-level API for running LLM-generated code with tool registries
 
 ## Tools Available
 

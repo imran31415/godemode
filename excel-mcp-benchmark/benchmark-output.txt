@@ -1,0 +1,542 @@
+======================================================================
+Excel MCP Benchmark: CodeMode vs Native Tool Calling
+======================================================================
+
+======================================================================
+SCENARIO: Simple
+======================================================================
+Expected operations: ~5 tool calls
+
+Running CodeMode approach...
+Step 1: Listing all sheets in the workbook
+============================================================
+
+Step 2: Reading data from the 'Sales' sheet
+============================================================
+
+Step 3: Getting the value of cell B2
+============================================================
+Value in cell B2: 150.5
+
+Step 4: Setting formula in cell D6 to calculate SUM(B2:B5)
+============================================================
+Formula =SUM(B2:B5) has been set in cell D6
+
+Step 5: Reading Sales sheet again to verify the formula
+============================================================
+
+Checking cell D6 specifically:
+Value in cell D6 (formula result): 
+
+All tasks completed successfully!
+
+  ✅ CodeMode:
+    Duration:     14.444s
+    API Calls:    1
+    Tool Calls:   6
+    Tokens:       2296 (in: 942, out: 1354)
+    Est. Cost:    $0.0231
+
+    --- Audit Log ---
+    [17:11:57.084] 1. API_CALL: Sending prompt to Claude for code generation
+    [17:12:11.479] 2. API_RESPONSE: Received code generation response (tokens: in=942, out=1354)
+    [17:12:11.481] 3. CODE_ANALYSIS: Generated code contains 6 tool calls
+    [17:12:11.481] 4. EXECUTION: Starting code execution via Yaegi interpreter
+    [17:12:11.507] 5. TOOL_CALL: Executed tool call #1
+                    Tool: describe_sheets
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx"}
+    [17:12:11.511] 6. TOOL_RESULT: describe_sheets
+                    Result: {"count":3,"sheets":[{"columns":2,"index":0,"name":"Sheet1","rows":5},{"columns":2,"index":1,"name":"Sales","rows":5},{"columns":3,"index":2,"name":"Products","rows":4}]}
+    [17:12:11.511] 7. TOOL_CALL: Executed tool call #2
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"S...
+    [17:12:11.512] 8. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Product","Amount"],["Widget A","150.5"],["Widget B","275"],["Gadget X","99.99"],["Gadget Y","450"]],"range":"","rows":5}
+    [17:12:11.512] 9. TOOL_CALL: Executed tool call #3
+                    Tool: get_cell
+                    Args: {"cell":"B2","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:12:11.513] 10. TOOL_RESULT: get_cell
+                    Result: {"cell":"B2","formula":"","value":"150.5"}
+    [17:12:11.513] 11. TOOL_CALL: Executed tool call #4
+                    Tool: set_formula
+                    Args: {"cell":"D6","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","fo...
+    [17:12:11.515] 12. TOOL_RESULT: set_formula
+                    Result: {"cell":"D6","formula":"=SUM(B2:B5)","success":true}
+    [17:12:11.515] 13. TOOL_CALL: Executed tool call #5
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"S...
+    [17:12:11.516] 14. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Product","Amount"],["Widget A","150.5"],["Widget B","275"],["Gadget X","99.99"],["Gadget Y","450"],["","","",""]],"range":"","rows":6}
+    [17:12:11.516] 15. TOOL_CALL: Executed tool call #6
+                    Tool: get_cell
+                    Args: {"cell":"D6","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:12:11.517] 16. TOOL_RESULT: get_cell
+                    Result: {"cell":"D6","formula":"=SUM(B2:B5)","value":""}
+    [17:12:11.528] 17. EXECUTION_COMPLETE: Execution completed with 6 tool calls
+
+    --- Generated Code (truncated) ---
+    ```go
+    package main
+    
+    import (
+    	"fmt"
+    )
+    
+    func main() {
+    	filePath := "/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx"
+    	
+    	// Step 1: List all sheets in the workbook
+    	fmt.Println("Step 1: Listing all sheets in the workbook")
+    	fmt.Println("============================================================")
+    	
+    	result, err := registry.Call("describe_sheets", map[string]interface{}{
+    		"file_path": filePath,
+    	})
+    	if err != nil {
+    		fmt.Println("Error describing sheets:", err)
+    		return
+    	}
+    	
+    	if data, ok := result.(map[string]interface{}); ok {
+    		if sheets, ok := data["sheets"].([]interface{}); ok {
+    			fmt.Printf("Found %d sheets:\n", len(sheets))
+    			for i, sheet := range sheets {
+    				fmt.Printf("%d. %v\n", i+1, sheet)
+    			}
+    		}
+    	}
+    ... (118 more lines)
+
+
+Running Native Tool Calling approach...
+
+  ✅ ToolCalling:
+    Duration:     24.105s
+    API Calls:    7
+    Tool Calls:   6
+    Tokens:       17280 (in: 16136, out: 1144)
+    Est. Cost:    $0.0656
+
+    --- Audit Log ---
+    [17:12:11.539] 1. API_CALL: API call #1
+    [17:12:14.315] 2. API_RESPONSE: Response #1 (stop_reason: tool_use) (tokens: in=1679, out=105)
+    [17:12:14.315] 3. TOOL_CALL: Tool call #1
+                    Tool: describe_sheets
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx"}
+    [17:12:14.319] 4. TOOL_RESULT: describe_sheets
+                    Result: {"count":3,"sheets":[{"columns":2,"index":0,"name":"Sheet1","rows":5},{"columns":2,"index":1,"name":"Sales","rows":5},{"columns":3,"index":2,"name":"Products","rows":4}]}
+    [17:12:14.319] 5. API_CALL: API call #2
+    [17:12:17.724] 6. API_RESPONSE: Response #2 (stop_reason: tool_use) (tokens: in=1857, out=172)
+    [17:12:17.724] 7. TOOL_CALL: Tool call #2
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"S...
+    [17:12:17.727] 8. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Product","Amount"],["Widget A","150.5"],["Widget B","275"],["Gadget X","99.99"],["Gadget Y","450"]],"range":"","rows":5}
+    [17:12:17.727] 9. API_CALL: API call #3
+    [17:12:20.989] 10. API_RESPONSE: Response #3 (stop_reason: tool_use) (tokens: in=2090, out=194)
+    [17:12:20.989] 11. TOOL_CALL: Tool call #3
+                    Tool: get_cell
+                    Args: {"cell":"B2","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:12:20.991] 12. TOOL_RESULT: get_cell
+                    Result: {"cell":"B2","formula":"","value":"150.5"}
+    [17:12:20.991] 13. API_CALL: API call #4
+    [17:12:24.452] 14. API_RESPONSE: Response #4 (stop_reason: tool_use) (tokens: in=2311, out=191)
+    [17:12:24.452] 15. TOOL_CALL: Tool call #4
+                    Tool: set_formula
+                    Args: {"cell":"D6","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","fo...
+    [17:12:24.458] 16. TOOL_RESULT: set_formula
+                    Result: {"cell":"D6","formula":"=SUM(B2:B5)","success":true}
+    [17:12:24.458] 17. API_CALL: API call #5
+    [17:12:27.555] 18. API_RESPONSE: Response #5 (stop_reason: tool_use) (tokens: in=2536, out=144)
+    [17:12:27.555] 19. TOOL_CALL: Tool call #5
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"S...
+    [17:12:27.557] 20. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Product","Amount"],["Widget A","150.5"],["Widget B","275"],["Gadget X","99.99"],["Gadget Y","450"],["","","",""]],"range":"","rows":6}
+    [17:12:27.557] 21. API_CALL: API call #6
+    [17:12:30.726] 22. API_RESPONSE: Response #6 (stop_reason: tool_use) (tokens: in=2746, out=137)
+    [17:12:30.727] 23. TOOL_CALL: Tool call #6
+                    Tool: get_cell
+                    Args: {"cell":"D6","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:12:30.729] 24. TOOL_RESULT: get_cell
+                    Result: {"cell":"D6","formula":"=SUM(B2:B5)","value":""}
+    [17:12:30.729] 25. API_CALL: API call #7
+    [17:12:35.643] 26. API_RESPONSE: Response #7 (stop_reason: end_turn) (tokens: in=2917, out=201)
+
+
+======================================================================
+COMPARISON
+======================================================================
+
+CodeMode vs Tool Calling:
+  Speed:         1.67x faster
+  Tokens:        86.7% fewer tokens
+  Cost:          64.7% cheaper
+  API Calls:     1 vs 7
+
+======================================================================
+SCENARIO: Complex
+======================================================================
+Expected operations: ~12 tool calls
+
+Running CodeMode approach...
+============================================================
+STEP 1: List all sheets to understand the workbook structure
+============================================================
+============================================================
+STEP 2: Read the Sales sheet to see the sales data
+============================================================
+Sales sheet data:
+============================================================
+STEP 3: Read the Products sheet to see product information
+============================================================
+Products sheet data:
+Number of products found: 0
+============================================================
+STEP 4: Create a new sheet called 'Analysis'
+============================================================
+Successfully created 'Analysis' sheet
+============================================================
+STEP 5: Write headers 'Metric', 'Value' in A1:B1
+============================================================
+Successfully wrote headers to Analysis sheet
+============================================================
+STEP 6: Calculate and write metrics
+============================================================
+Set Total Sales formula in B2
+Set Average Sale formula in B3
+Set Max Sale formula in B4
+Set Number of Products to 0 in B5
+============================================================
+STEP 7: Read back the Analysis sheet to verify
+============================================================
+Analysis sheet data:
+
+Individual calculated values:
+B2: 
+B3: 
+B4: 
+B5: 0
+============================================================
+STEP 8: Copy the Sales sheet to a new sheet called 'Sales_Backup'
+============================================================
+Successfully copied Sales sheet to Sales_Backup
+============================================================
+STEP 9: Describe all sheets to show the final structure
+============================================================
+Final workbook structure:
+============================================================
+Analysis and modification completed successfully!
+============================================================
+
+  ✅ CodeMode:
+    Duration:     26.064s
+    API Calls:    1
+    Tool Calls:   20
+    Tokens:       3823 (in: 1040, out: 2783)
+    Est. Cost:    $0.0449
+
+    --- Audit Log ---
+    [17:12:35.660] 1. API_CALL: Sending prompt to Claude for code generation
+    [17:13:01.653] 2. API_RESPONSE: Received code generation response (tokens: in=1040, out=2783)
+    [17:13:01.654] 3. CODE_ANALYSIS: Generated code contains 17 tool calls
+    [17:13:01.654] 4. EXECUTION: Starting code execution via Yaegi interpreter
+    [17:13:01.682] 5. TOOL_CALL: Executed tool call #1
+                    Tool: describe_sheets
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx"}
+    [17:13:01.684] 6. TOOL_RESULT: describe_sheets
+                    Result: {"count":3,"sheets":[{"columns":2,"index":0,"name":"Sheet1","rows":5},{"columns":2,"index":1,"name":"Sales","rows":5},{"columns":3,"index":2,"name":"Products","rows":4}]}
+    [17:13:01.684] 7. TOOL_CALL: Executed tool call #2
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"S...
+    [17:13:01.685] 8. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Product","Amount"],["Widget A","150.5"],["Widget B","275"],["Gadget X","99.99"],["Gadget Y","450"]],"range":"","rows":5}
+    [17:13:01.685] 9. TOOL_CALL: Executed tool call #3
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"P...
+    [17:13:01.686] 10. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Name","Category","Stock"],["Widget A","Widgets","100"],["Widget B","Widgets","50"],["Gadget X","Gadgets","25"]],"range":"","rows":4}
+    [17:13:01.686] 11. TOOL_CALL: Executed tool call #4
+                    Tool: create_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"A...
+    [17:13:01.688] 12. TOOL_RESULT: create_sheet
+                    Result: {"index":3,"name":"Analysis","success":true}
+    [17:13:01.688] 13. TOOL_CALL: Executed tool call #5
+                    Tool: write_to_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","range":"A1:B1"...
+    [17:13:01.690] 14. TOOL_RESULT: write_to_sheet
+                    Result: {"cells_written":2,"range":"A1:B1","success":true}
+    [17:13:01.690] 15. TOOL_CALL: Executed tool call #6
+                    Tool: set_cell
+                    Args: {"cell":"A2","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:01.692] 16. TOOL_RESULT: set_cell
+                    Result: {"cell":"A2","success":true,"value":"Total Sales"}
+    [17:13:01.692] 17. TOOL_CALL: Executed tool call #7
+                    Tool: set_formula
+                    Args: {"cell":"B2","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","fo...
+    [17:13:01.693] 18. TOOL_RESULT: set_formula
+                    Result: {"cell":"B2","formula":"=SUM(Sales!B2:B5)","success":true}
+    [17:13:01.693] 19. TOOL_CALL: Executed tool call #8
+                    Tool: set_cell
+                    Args: {"cell":"A3","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:01.697] 20. TOOL_RESULT: set_cell
+                    Result: {"cell":"A3","success":true,"value":"Average Sale"}
+    [17:13:01.697] 21. TOOL_CALL: Executed tool call #9
+                    Tool: set_formula
+                    Args: {"cell":"B3","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","fo...
+    [17:13:01.699] 22. TOOL_RESULT: set_formula
+                    Result: {"cell":"B3","formula":"=AVERAGE(Sales!B2:B5)","success":true}
+    [17:13:01.699] 23. TOOL_CALL: Executed tool call #10
+                    Tool: set_cell
+                    Args: {"cell":"A4","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:01.700] 24. TOOL_RESULT: set_cell
+                    Result: {"cell":"A4","success":true,"value":"Max Sale"}
+    [17:13:01.700] 25. TOOL_CALL: Executed tool call #11
+                    Tool: set_formula
+                    Args: {"cell":"B4","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","fo...
+    [17:13:01.702] 26. TOOL_RESULT: set_formula
+                    Result: {"cell":"B4","formula":"=MAX(Sales!B2:B5)","success":true}
+    [17:13:01.702] 27. TOOL_CALL: Executed tool call #12
+                    Tool: set_cell
+                    Args: {"cell":"A5","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:01.704] 28. TOOL_RESULT: set_cell
+                    Result: {"cell":"A5","success":true,"value":"Number of Products"}
+    [17:13:01.704] 29. TOOL_CALL: Executed tool call #13
+                    Tool: set_cell
+                    Args: {"cell":"B5","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:01.706] 30. TOOL_RESULT: set_cell
+                    Result: {"cell":"B5","success":true,"value":0}
+    [17:13:01.706] 31. TOOL_CALL: Executed tool call #14
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"A...
+    [17:13:01.707] 32. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Metric","Value"],["Total Sales",""],["Average Sale",""],["Max Sale",""],["Number of Products","0"]],"range":"","rows":5}
+    [17:13:01.707] 33. TOOL_CALL: Executed tool call #15
+                    Tool: get_cell
+                    Args: {"cell":"B2","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:01.708] 34. TOOL_RESULT: get_cell
+                    Result: {"cell":"B2","formula":"=SUM(Sales!B2:B5)","value":""}
+    [17:13:01.708] 35. TOOL_CALL: Executed tool call #16
+                    Tool: get_cell
+                    Args: {"cell":"B3","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:01.709] 36. TOOL_RESULT: get_cell
+                    Result: {"cell":"B3","formula":"=AVERAGE(Sales!B2:B5)","value":""}
+    [17:13:01.709] 37. TOOL_CALL: Executed tool call #17
+                    Tool: get_cell
+                    Args: {"cell":"B4","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:01.709] 38. TOOL_RESULT: get_cell
+                    Result: {"cell":"B4","formula":"=MAX(Sales!B2:B5)","value":""}
+    [17:13:01.709] 39. TOOL_CALL: Executed tool call #18
+                    Tool: get_cell
+                    Args: {"cell":"B5","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:01.710] 40. TOOL_RESULT: get_cell
+                    Result: {"cell":"B5","formula":"","value":"0"}
+    [17:13:01.710] 41. TOOL_CALL: Executed tool call #19
+                    Tool: copy_sheet
+                    Args: {"dst_sheet":"Sales_Backup","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_wor...
+    [17:13:01.712] 42. TOOL_RESULT: copy_sheet
+                    Result: {"dst_sheet":"Sales_Backup","src_sheet":"Sales","success":true}
+    [17:13:01.712] 43. TOOL_CALL: Executed tool call #20
+                    Tool: describe_sheets
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx"}
+    [17:13:01.714] 44. TOOL_RESULT: describe_sheets
+                    Result: {"count":5,"sheets":[{"columns":2,"index":0,"name":"Sheet1","rows":5},{"columns":2,"index":1,"name":"Sales","rows":5},{"columns":3,"index":2,"name":"Products","rows":4},{"columns":2,"index":3,"name":"...
+    [17:13:01.725] 45. EXECUTION_COMPLETE: Execution completed with 20 tool calls
+
+    --- Generated Code (truncated) ---
+    ```go
+    package main
+    
+    import (
+    	"fmt"
+    )
+    
+    func main() {
+    	filePath := "/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx"
+    
+    	fmt.Println("============================================================")
+    	fmt.Println("STEP 1: List all sheets to understand the workbook structure")
+    	fmt.Println("============================================================")
+    
+    	result, err := registry.Call("describe_sheets", map[string]interface{}{
+    		"file_path": filePath,
+    	})
+    	if err != nil {
+    		fmt.Println("Error describing sheets:", err)
+    		return
+    	}
+    
+    	if data, ok := result.(map[string]interface{}); ok {
+    		if sheets, ok := data["sheets"].([]interface{}); ok {
+    			fmt.Printf("Found %d sheets:\n", len(sheets))
+    			for i, sheet := range sheets {
+    				if sheetData, ok := sheet.(map[string]interface{}); ok {
+    					fmt.Printf("Sheet %d: %v\n", i+1, sheetData)
+    				}
+    			}
+    ... (268 more lines)
+
+
+Running Native Tool Calling approach...
+
+  ✅ ToolCalling:
+    Duration:     1m14.422s
+    API Calls:    21
+    Tool Calls:   20
+    Tokens:       81745 (in: 78421, out: 3324)
+    Est. Cost:    $0.2851
+
+    --- Audit Log ---
+    [17:13:01.735] 1. API_CALL: API call #1
+    [17:13:04.725] 2. API_RESPONSE: Response #1 (stop_reason: tool_use) (tokens: in=1777, out=104)
+    [17:13:04.725] 3. TOOL_CALL: Tool call #1
+                    Tool: describe_sheets
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx"}
+    [17:13:04.729] 4. TOOL_RESULT: describe_sheets
+                    Result: {"count":3,"sheets":[{"columns":2,"index":0,"name":"Sheet1","rows":5},{"columns":2,"index":1,"name":"Sales","rows":5},{"columns":3,"index":2,"name":"Products","rows":4}]}
+    [17:13:04.729] 5. API_CALL: API call #2
+    [17:13:08.719] 6. API_RESPONSE: Response #2 (stop_reason: tool_use) (tokens: in=1954, out=173)
+    [17:13:08.719] 7. TOOL_CALL: Tool call #2
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"S...
+    [17:13:08.721] 8. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Product","Amount"],["Widget A","150.5"],["Widget B","275"],["Gadget X","99.99"],["Gadget Y","450"]],"range":"","rows":5}
+    [17:13:08.721] 9. API_CALL: API call #3
+    [17:13:12.969] 10. API_RESPONSE: Response #3 (stop_reason: tool_use) (tokens: in=2188, out=185)
+    [17:13:12.969] 11. TOOL_CALL: Tool call #3
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"P...
+    [17:13:12.970] 12. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Name","Category","Stock"],["Widget A","Widgets","100"],["Widget B","Widgets","50"],["Gadget X","Gadgets","25"]],"range":"","rows":4}
+    [17:13:12.970] 13. API_CALL: API call #4
+    [17:13:16.179] 14. API_RESPONSE: Response #4 (stop_reason: tool_use) (tokens: in=2434, out=185)
+    [17:13:16.179] 15. TOOL_CALL: Tool call #4
+                    Tool: create_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"A...
+    [17:13:16.183] 16. TOOL_RESULT: create_sheet
+                    Result: {"index":3,"name":"Analysis","success":true}
+    [17:13:16.183] 17. API_CALL: API call #5
+    [17:13:19.654] 18. API_RESPONSE: Response #5 (stop_reason: tool_use) (tokens: in=2643, out=183)
+    [17:13:19.654] 19. TOOL_CALL: Tool call #5
+                    Tool: write_to_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","range":"A1:B1"...
+    [17:13:19.657] 20. TOOL_RESULT: write_to_sheet
+                    Result: {"cells_written":2,"range":"A1:B1","success":true}
+    [17:13:19.657] 21. API_CALL: API call #6
+    [17:13:22.952] 22. API_RESPONSE: Response #6 (stop_reason: tool_use) (tokens: in=2856, out=180)
+    [17:13:22.952] 23. TOOL_CALL: Tool call #6
+                    Tool: set_cell
+                    Args: {"cell":"A2","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:22.956] 24. TOOL_RESULT: set_cell
+                    Result: {"cell":"A2","success":true,"value":"Total Sales"}
+    [17:13:22.956] 25. API_CALL: API call #7
+    [17:13:26.087] 26. API_RESPONSE: Response #7 (stop_reason: tool_use) (tokens: in=3063, out=145)
+    [17:13:26.087] 27. TOOL_CALL: Tool call #7
+                    Tool: set_formula
+                    Args: {"cell":"B2","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","fo...
+    [17:13:26.091] 28. TOOL_RESULT: set_formula
+                    Result: {"cell":"B2","formula":"=SUM(Sales!B2:B5)","success":true}
+    [17:13:26.091] 29. API_CALL: API call #8
+    [17:13:29.506] 30. API_RESPONSE: Response #8 (stop_reason: tool_use) (tokens: in=3244, out=145)
+    [17:13:29.506] 31. TOOL_CALL: Tool call #8
+                    Tool: set_cell
+                    Args: {"cell":"A3","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:29.510] 32. TOOL_RESULT: set_cell
+                    Result: {"cell":"A3","success":true,"value":"Average Sale"}
+    [17:13:29.510] 33. API_CALL: API call #9
+    [17:13:32.476] 34. API_RESPONSE: Response #9 (stop_reason: tool_use) (tokens: in=3416, out=145)
+    [17:13:32.476] 35. TOOL_CALL: Tool call #9
+                    Tool: set_formula
+                    Args: {"cell":"B3","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","fo...
+    [17:13:32.480] 36. TOOL_RESULT: set_formula
+                    Result: {"cell":"B3","formula":"=AVERAGE(Sales!B2:B5)","success":true}
+    [17:13:32.480] 37. API_CALL: API call #10
+    [17:13:35.308] 38. API_RESPONSE: Response #10 (stop_reason: tool_use) (tokens: in=3597, out=145)
+    [17:13:35.308] 39. TOOL_CALL: Tool call #10
+                    Tool: set_cell
+                    Args: {"cell":"A4","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:35.314] 40. TOOL_RESULT: set_cell
+                    Result: {"cell":"A4","success":true,"value":"Max Sale"}
+    [17:13:35.314] 41. API_CALL: API call #11
+    [17:13:38.635] 42. API_RESPONSE: Response #11 (stop_reason: tool_use) (tokens: in=3769, out=144)
+    [17:13:38.635] 43. TOOL_CALL: Tool call #11
+                    Tool: set_formula
+                    Args: {"cell":"B4","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","fo...
+    [17:13:38.637] 44. TOOL_RESULT: set_formula
+                    Result: {"cell":"B4","formula":"=MAX(Sales!B2:B5)","success":true}
+    [17:13:38.637] 45. API_CALL: API call #12
+    [17:13:41.589] 46. API_RESPONSE: Response #12 (stop_reason: tool_use) (tokens: in=3948, out=147)
+    [17:13:41.589] 47. TOOL_CALL: Tool call #12
+                    Tool: set_cell
+                    Args: {"cell":"A5","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:41.592] 48. TOOL_RESULT: set_cell
+                    Result: {"cell":"A5","success":true,"value":"Number of Products"}
+    [17:13:41.592] 49. API_CALL: API call #13
+    [17:13:46.708] 50. API_RESPONSE: Response #13 (stop_reason: tool_use) (tokens: in=4123, out=146)
+    [17:13:46.708] 51. TOOL_CALL: Tool call #13
+                    Tool: set_formula
+                    Args: {"cell":"B5","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","fo...
+    [17:13:46.710] 52. TOOL_RESULT: set_formula
+                    Result: {"cell":"B5","formula":"=COUNTA(Products!A2:A4)","success":true}
+    [17:13:46.710] 53. API_CALL: API call #14
+    [17:13:49.784] 54. API_RESPONSE: Response #14 (stop_reason: tool_use) (tokens: in=4306, out=134)
+    [17:13:49.784] 55. TOOL_CALL: Tool call #14
+                    Tool: read_sheet
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sheet_name":"A...
+    [17:13:49.788] 56. TOOL_RESULT: read_sheet
+                    Result: {"data":[["Metric","Value"],["Total Sales",""],["Average Sale",""],["Max Sale",""],["Number of Products",""]],"range":"","rows":5}
+    [17:13:49.788] 57. API_CALL: API call #15
+    [17:13:53.368] 58. API_RESPONSE: Response #15 (stop_reason: tool_use) (tokens: in=4491, out=137)
+    [17:13:53.368] 59. TOOL_CALL: Tool call #15
+                    Tool: get_cell
+                    Args: {"cell":"B2","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:53.370] 60. TOOL_RESULT: get_cell
+                    Result: {"cell":"B2","formula":"=SUM(Sales!B2:B5)","value":""}
+    [17:13:53.370] 61. API_CALL: API call #16
+    [17:13:56.233] 62. API_RESPONSE: Response #16 (stop_reason: tool_use) (tokens: in=4664, out=118)
+    [17:13:56.233] 63. TOOL_CALL: Tool call #16
+                    Tool: get_cell
+                    Args: {"cell":"B3","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:56.235] 64. TOOL_RESULT: get_cell
+                    Result: {"cell":"B3","formula":"=AVERAGE(Sales!B2:B5)","value":""}
+    [17:13:56.235] 65. API_CALL: API call #17
+    [17:13:58.989] 66. API_RESPONSE: Response #17 (stop_reason: tool_use) (tokens: in=4818, out=118)
+    [17:13:58.989] 67. TOOL_CALL: Tool call #17
+                    Tool: get_cell
+                    Args: {"cell":"B4","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:13:58.991] 68. TOOL_RESULT: get_cell
+                    Result: {"cell":"B4","formula":"=MAX(Sales!B2:B5)","value":""}
+    [17:13:58.991] 69. API_CALL: API call #18
+    [17:14:01.829] 70. API_RESPONSE: Response #18 (stop_reason: tool_use) (tokens: in=4971, out=118)
+    [17:14:01.829] 71. TOOL_CALL: Tool call #18
+                    Tool: get_cell
+                    Args: {"cell":"B5","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx","sh...
+    [17:14:01.831] 72. TOOL_RESULT: get_cell
+                    Result: {"cell":"B5","formula":"=COUNTA(Products!A2:A4)","value":""}
+    [17:14:01.831] 73. API_CALL: API call #19
+    [17:14:06.509] 74. API_RESPONSE: Response #19 (stop_reason: tool_use) (tokens: in=5126, out=247)
+    [17:14:06.509] 75. TOOL_CALL: Tool call #19
+                    Tool: copy_sheet
+                    Args: {"dst_sheet":"Sales_Backup","file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_wor...
+    [17:14:06.514] 76. TOOL_RESULT: copy_sheet
+                    Result: {"dst_sheet":"Sales_Backup","src_sheet":"Sales","success":true}
+    [17:14:06.514] 77. API_CALL: API call #20
+    [17:14:09.480] 78. API_RESPONSE: Response #20 (stop_reason: tool_use) (tokens: in=5404, out=115)
+    [17:14:09.480] 79. TOOL_CALL: Tool call #20
+                    Tool: describe_sheets
+                    Args: {"file_path":"/Users/arsheenali/dev/godemode/excel-mcp-benchmark/test_workbook.xlsx"}
+    [17:14:09.484] 80. TOOL_RESULT: describe_sheets
+                    Result: {"count":5,"sheets":[{"columns":2,"index":0,"name":"Sheet1","rows":5},{"columns":2,"index":1,"name":"Sales","rows":5},{"columns":3,"index":2,"name":"Products","rows":4},{"columns":2,"index":3,"name":"...
+    [17:14:09.484] 81. API_CALL: API call #21
+    [17:14:16.157] 82. API_RESPONSE: Response #21 (stop_reason: end_turn) (tokens: in=5629, out=310)
+
+
+======================================================================
+COMPARISON
+======================================================================
+
+CodeMode vs Tool Calling:
+  Speed:         2.86x faster
+  Tokens:        95.3% fewer tokens
+  Cost:          84.3% cheaper
+  API Calls:     1 vs 21

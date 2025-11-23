@@ -1,0 +1,6 @@
+github.com/imran31415/godemode v0.0.0-20251122211209-98354182c0d9 h1:2qq0Bn/ty48ZW7mUmRPZLXOSTt1xVCvHFBbxzpBLKpQ=
+github.com/imran31415/godemode v0.0.0-20251122211209-98354182c0d9/go.mod h1:N7EfqhfENGubEbaVO59ybUnc+pdI1GjJsfhnGPLVwsI=
+github.com/tetratelabs/wazero v1.9.0 h1:IcZ56OuxrtaEz8UYNRHBrUa9bYeX9oVY93KspZZBf/I=
+github.com/tetratelabs/wazero v1.9.0/go.mod h1:TSbcXCfFP0L2FGkRPxHphadXPjo1T6W+CseNNY7EkjM=
+github.com/traefik/yaegi v0.16.1 h1:f1De3DVJqIDKmnasUF6MwmWv1dSEEat0wcpXhD2On3E=
+github.com/traefik/yaegi v0.16.1/go.mod h1:4eVhbPb3LnD2VigQjhYbEJ69vDRFdT2HQNrXx8eEwUY=

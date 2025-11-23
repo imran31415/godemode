@@ -1,0 +1,162 @@
+{
+  "name": "github-mcp",
+  "version": "1.0.0",
+  "description": "GitHub MCP Server - Repository management and GitHub API integration",
+  "tools": [
+    {
+      "name": "search_repositories",
+      "description": "Search for GitHub repositories",
+      "parameters": [
+        {"name": "query", "type": "string", "required": true, "description": "Search query"},
+        {"name": "page", "type": "int", "required": false, "description": "Page number"},
+        {"name": "per_page", "type": "int", "required": false, "description": "Results per page"}
+      ]
+    },
+    {
+      "name": "get_repository",
+      "description": "Get repository details",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"}
+      ]
+    },
+    {
+      "name": "list_issues",
+      "description": "List and filter repository issues",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "state", "type": "string", "required": false, "description": "Issue state: open, closed, all"},
+        {"name": "labels", "type": "string", "required": false, "description": "Comma-separated list of labels"},
+        {"name": "per_page", "type": "int", "required": false, "description": "Results per page"}
+      ]
+    },
+    {
+      "name": "get_issue",
+      "description": "Get the contents of an issue within a repository",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "issue_number", "type": "int", "required": true, "description": "Issue number"}
+      ]
+    },
+    {
+      "name": "create_issue",
+      "description": "Create a new issue",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "title", "type": "string", "required": true, "description": "Issue title"},
+        {"name": "body", "type": "string", "required": false, "description": "Issue body"},
+        {"name": "labels", "type": "[]string", "required": false, "description": "Labels to assign"}
+      ]
+    },
+    {
+      "name": "update_issue",
+      "description": "Update an existing issue",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "issue_number", "type": "int", "required": true, "description": "Issue number"},
+        {"name": "title", "type": "string", "required": false, "description": "New title"},
+        {"name": "body", "type": "string", "required": false, "description": "New body"},
+        {"name": "state", "type": "string", "required": false, "description": "New state: open, closed"},
+        {"name": "labels", "type": "[]string", "required": false, "description": "Labels to set"}
+      ]
+    },
+    {
+      "name": "add_issue_comment",
+      "description": "Add a comment to an issue",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "issue_number", "type": "int", "required": true, "description": "Issue number"},
+        {"name": "body", "type": "string", "required": true, "description": "Comment body"}
+      ]
+    },
+    {
+      "name": "list_issue_comments",
+      "description": "List comments on an issue",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "issue_number", "type": "int", "required": true, "description": "Issue number"}
+      ]
+    },
+    {
+      "name": "search_issues",
+      "description": "Search for issues and pull requests",
+      "parameters": [
+        {"name": "query", "type": "string", "required": true, "description": "Search query"},
+        {"name": "per_page", "type": "int", "required": false, "description": "Results per page"}
+      ]
+    },
+    {
+      "name": "list_pull_requests",
+      "description": "List and filter repository pull requests",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "state", "type": "string", "required": false, "description": "PR state: open, closed, all"},
+        {"name": "per_page", "type": "int", "required": false, "description": "Results per page"}
+      ]
+    },
+    {
+      "name": "get_pull_request",
+      "description": "Get details of a specific pull request",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "pull_number", "type": "int", "required": true, "description": "Pull request number"}
+      ]
+    },
+    {
+      "name": "create_pull_request",
+      "description": "Create a new pull request",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "title", "type": "string", "required": true, "description": "PR title"},
+        {"name": "body", "type": "string", "required": false, "description": "PR body"},
+        {"name": "head", "type": "string", "required": true, "description": "Branch with changes"},
+        {"name": "base", "type": "string", "required": true, "description": "Branch to merge into"}
+      ]
+    },
+    {
+      "name": "list_commits",
+      "description": "Get commits of a branch in a repository",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "sha", "type": "string", "required": false, "description": "Branch name or commit SHA"},
+        {"name": "per_page", "type": "int", "required": false, "description": "Results per page"}
+      ]
+    },
+    {
+      "name": "get_file_contents",
+      "description": "Get contents of a file or directory",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"},
+        {"name": "path", "type": "string", "required": true, "description": "File path"},
+        {"name": "ref", "type": "string", "required": false, "description": "Branch or commit ref"}
+      ]
+    },
+    {
+      "name": "search_code",
+      "description": "Search for code across GitHub repositories",
+      "parameters": [
+        {"name": "query", "type": "string", "required": true, "description": "Search query"},
+        {"name": "per_page", "type": "int", "required": false, "description": "Results per page"}
+      ]
+    },
+    {
+      "name": "list_labels",
+      "description": "List labels for a repository",
+      "parameters": [
+        {"name": "owner", "type": "string", "required": true, "description": "Repository owner"},
+        {"name": "repo", "type": "string", "required": true, "description": "Repository name"}
+      ]
+    }
+  ]
+}

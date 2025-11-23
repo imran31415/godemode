@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -10,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/imran31415/godemode/pkg/executor"
 	sqlitetools "github.com/imran31415/godemode/sqlite-mcp-benchmark/generated"
 )
 
@@ -314,6 +316,7 @@ func runCodeModeBenchmark(apiKey string, prompt string) BenchmarkResult {
 	start := time.Now()
 	registry := sqlitetools.NewRegistry()
 	var auditLog []AuditEntry
+	var executedToolCalls int
 
 	// Build system prompt with available tools for CodeMode
 	systemPrompt := buildCodeModeSystemPrompt(registry)
@@ -351,7 +354,7 @@ func runCodeModeBenchmark(apiKey string, prompt string) BenchmarkResult {
 		OutputTokens: resp.Usage.OutputTokens,
 	})
 
-	// Extract generated code and count tool calls
+	// Extract generated code
 	generatedCode := ""
 	for _, block := range resp.Content {
 		if block.Type == "text" {
@@ -359,10 +362,13 @@ func runCodeModeBenchmark(apiKey string, prompt string) BenchmarkResult {
 		}
 	}
 
+	// Extract just the Go code from markdown
+	goCode := extractGoCode(generatedCode)
+
 	// Count registry.Call occurrences in generated code
-	toolCalls := strings.Count(generatedCode, "registry.Call")
+	toolCalls := strings.Count(goCode, "registry.Call")
 	if toolCalls == 0 {
-		toolCalls = strings.Count(generatedCode, `Call("`)
+		toolCalls = strings.Count(goCode, `Call("`)
 	}
 
 	// Log the tool calls found in generated code
@@ -371,6 +377,40 @@ func runCodeModeBenchmark(apiKey string, prompt string) BenchmarkResult {
 		Type:      "code_analysis",
 		Details:   fmt.Sprintf("Generated code contains %d tool calls", toolCalls),
 	})
+
+	// Execute the generated code
+	auditLog = append(auditLog, AuditEntry{
+		Timestamp: time.Now(),
+		Type:      "execution",
+		Details:   "Starting code execution via Yaegi interpreter",
+	})
+
+	output, execToolCalls, execErr := executeGeneratedCode(goCode, registry, &auditLog)
+	executedToolCalls = execToolCalls
+
+	if execErr != nil {
+		auditLog = append(auditLog, AuditEntry{
+			Timestamp: time.Now(),
+			Type:      "error",
+			Details:   fmt.Sprintf("Execution failed: %s", execErr.Error()),
+		})
+	} else {
+		auditLog = append(auditLog, AuditEntry{
+			Timestamp: time.Now(),
+			Type:      "execution_complete",
+			Details:   fmt.Sprintf("Execution completed with %d tool calls", executedToolCalls),
+		})
+		if len(output) > 500 {
+			output = output[:500] + "..."
+		}
+		if output != "" {
+			auditLog = append(auditLog, AuditEntry{
+				Timestamp:  time.Now(),
+				Type:       "output",
+				ToolResult: output,
+			})
+		}
+	}
 
 	// Calculate cost (Claude Sonnet pricing: $3/MTok in, $15/MTok out)
 	inputCost := float64(resp.Usage.InputTokens) * 0.003 / 1000
@@ -383,12 +423,75 @@ func runCodeModeBenchmark(apiKey string, prompt string) BenchmarkResult {
 		InputTokens:   resp.Usage.InputTokens,
 		OutputTokens:  resp.Usage.OutputTokens,
 		TotalTokens:   resp.Usage.InputTokens + resp.Usage.OutputTokens,
-		ToolCalls:     toolCalls,
-		Success:       true,
+		ToolCalls:     executedToolCalls,
+		Success:       execErr == nil,
+		Error:         func() string { if execErr != nil { return execErr.Error() }; return "" }(),
 		EstimatedCost: inputCost + outputCost,
 		AuditLog:      auditLog,
 		GeneratedCode: generatedCode,
 	}
+}
+
+// extractGoCode uses the core preprocessor to extract Go code from markdown
+func extractGoCode(text string) string {
+	preprocessor := executor.NewCodePreprocessor()
+	return preprocessor.ExtractGoCode(text)
+}
+
+// executeGeneratedCode runs the generated Go code using the InterpreterExecutor
+func executeGeneratedCode(code string, registry *sqlitetools.Registry, auditLog *[]AuditEntry) (string, int, error) {
+	// Track tool calls
+	toolCallCount := 0
+
+	// Create a wrapper registry that logs calls
+	wrappedCall := func(name string, args map[string]interface{}) (interface{}, error) {
+		toolCallCount++
+		argsJSON, _ := json.Marshal(args)
+
+		*auditLog = append(*auditLog, AuditEntry{
+			Timestamp: time.Now(),
+			Type:      "tool_call",
+			ToolName:  name,
+			ToolArgs:  string(argsJSON),
+			Details:   fmt.Sprintf("Executed tool call #%d", toolCallCount),
+		})
+
+		result, err := registry.Call(name, args)
+
+		var resultStr string
+		if err != nil {
+			resultStr = fmt.Sprintf("Error: %v", err)
+		} else {
+			resultBytes, _ := json.Marshal(result)
+			resultStr = string(resultBytes)
+			if len(resultStr) > 200 {
+				resultStr = resultStr[:200] + "..."
+			}
+		}
+
+		*auditLog = append(*auditLog, AuditEntry{
+			Timestamp:  time.Now(),
+			Type:       "tool_result",
+			ToolName:   name,
+			ToolResult: resultStr,
+		})
+
+		return result, err
+	}
+
+	// Use the core executor's ExecuteGeneratedCode API
+	exec := executor.NewInterpreterExecutor()
+	result, err := exec.ExecuteGeneratedCode(context.Background(), code, 60*time.Second, wrappedCall)
+
+	if err != nil {
+		return result.Stdout, toolCallCount, fmt.Errorf("execution error: %w", err)
+	}
+
+	if !result.Success {
+		return result.Stdout, toolCallCount, fmt.Errorf("execution failed: %s", result.Error)
+	}
+
+	return result.Stdout, toolCallCount, nil
 }
 
 func runToolCallingBenchmark(apiKey string, prompt string) BenchmarkResult {
@@ -558,7 +661,7 @@ func callClaude(apiKey, prompt string, tools []Tool) (*ClaudeResponse, error) {
 
 	req := ClaudeRequest{
 		Model:     model,
-		MaxTokens: 4096,
+		MaxTokens: 8192,
 		Messages: []Message{
 			{Role: "user", Content: prompt},
 		},
@@ -579,7 +682,7 @@ func callClaudeWithTools(apiKey string, messages []Message, tools []Tool) (*Clau
 
 	req := ClaudeRequest{
 		Model:     model,
-		MaxTokens: 4096,
+		MaxTokens: 8192,
 		Messages:  messages,
 		Tools:     tools,
 	}
@@ -653,10 +756,16 @@ Available tools (call via registry.Call("tool_name", args)):
 	}
 
 	sb.WriteString(`
-Generate a complete Go program that:
+Generate a complete, valid Go program that:
 1. Uses the registry to call the necessary tools
-2. Implements any required loops and conditional logic
-3. Outputs results using fmt.Println
+2. Implements loops for iterating over results
+3. Handles errors appropriately
+4. Outputs results using fmt.Println
+
+IMPORTANT: Use valid Go syntax only. Do NOT use Python-style string multiplication like "=" * 60.
+Instead use strings.Repeat("=", 60) or just print a literal string.
+
+The registry variable is already defined - do NOT redefine it. Just use registry.Call() directly.
 
 Example usage:
   result, err := registry.Call("read_records", map[string]interface{}{
@@ -665,8 +774,17 @@ Example usage:
   })
   if err != nil {
       fmt.Println("Error:", err)
+      return
   }
-  fmt.Println(result)
+
+  // Type assert to access the data
+  if data, ok := result.(map[string]interface{}); ok {
+      if rows, ok := data["rows"].([]interface{}); ok {
+          for _, row := range rows {
+              fmt.Println(row)
+          }
+      }
+  }
 `)
 
 	return sb.String()
@@ -755,6 +873,12 @@ func printResult(r BenchmarkResult) {
 				fmt.Printf("                    Result: %s\n", entry.ToolResult)
 			case "code_analysis":
 				fmt.Printf("    [%s] %d. CODE_ANALYSIS: %s\n", timestamp, i+1, entry.Details)
+			case "execution":
+				fmt.Printf("    [%s] %d. EXECUTION: %s\n", timestamp, i+1, entry.Details)
+			case "execution_complete":
+				fmt.Printf("    [%s] %d. EXECUTION_COMPLETE: %s\n", timestamp, i+1, entry.Details)
+			case "output":
+				fmt.Printf("    [%s] %d. OUTPUT:\n%s\n", timestamp, i+1, entry.ToolResult)
 			case "error":
 				fmt.Printf("    [%s] %d. ERROR: %s\n", timestamp, i+1, entry.Details)
 			case "warning":

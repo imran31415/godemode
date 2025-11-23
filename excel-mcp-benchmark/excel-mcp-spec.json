@@ -1,0 +1,219 @@
+{
+  "name": "excel-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Excel file manipulation using Go excelize library (inspired by haris-musa/excel-mcp-server)",
+  "tools": [
+    {
+      "name": "describe_sheets",
+      "description": "List all sheet information of specified Excel file including sheet names, row counts, and column counts.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path to the Excel file"
+          }
+        },
+        "required": ["file_path"]
+      }
+    },
+    {
+      "name": "read_sheet",
+      "description": "Read values from Excel sheet with optional range specification.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path to the Excel file"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Sheet name in the Excel file"
+          },
+          "range": {
+            "type": "string",
+            "description": "Cell range (e.g., 'A1:C10')"
+          }
+        },
+        "required": ["file_path", "sheet_name"]
+      }
+    },
+    {
+      "name": "write_to_sheet",
+      "description": "Write values to the Excel sheet.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path to the Excel file"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Sheet name in the Excel file"
+          },
+          "range": {
+            "type": "string",
+            "description": "Cell range (e.g., 'A1:C10')"
+          },
+          "values": {
+            "type": "array",
+            "description": "2D array of values to write"
+          },
+          "new_sheet": {
+            "type": "boolean",
+            "description": "Create new sheet if true"
+          }
+        },
+        "required": ["file_path", "sheet_name", "range", "values"]
+      }
+    },
+    {
+      "name": "create_sheet",
+      "description": "Create a new sheet in the Excel file.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path to the Excel file"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Name for the new sheet"
+          }
+        },
+        "required": ["file_path", "sheet_name"]
+      }
+    },
+    {
+      "name": "delete_sheet",
+      "description": "Delete a sheet from the Excel file.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path to the Excel file"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Sheet name to delete"
+          }
+        },
+        "required": ["file_path", "sheet_name"]
+      }
+    },
+    {
+      "name": "copy_sheet",
+      "description": "Copy existing sheet to a new sheet.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path to the Excel file"
+          },
+          "src_sheet": {
+            "type": "string",
+            "description": "Source sheet name"
+          },
+          "dst_sheet": {
+            "type": "string",
+            "description": "Destination sheet name"
+          }
+        },
+        "required": ["file_path", "src_sheet", "dst_sheet"]
+      }
+    },
+    {
+      "name": "get_cell",
+      "description": "Get the value of a specific cell.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path to the Excel file"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Sheet name in the Excel file"
+          },
+          "cell": {
+            "type": "string",
+            "description": "Cell reference (e.g., 'A1')"
+          }
+        },
+        "required": ["file_path", "sheet_name", "cell"]
+      }
+    },
+    {
+      "name": "set_cell",
+      "description": "Set the value of a specific cell.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path to the Excel file"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Sheet name in the Excel file"
+          },
+          "cell": {
+            "type": "string",
+            "description": "Cell reference (e.g., 'A1')"
+          },
+          "value": {
+            "type": "string",
+            "description": "Value to set (string, number, or formula starting with '=')"
+          }
+        },
+        "required": ["file_path", "sheet_name", "cell", "value"]
+      }
+    },
+    {
+      "name": "set_formula",
+      "description": "Set a formula in a specific cell.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path to the Excel file"
+          },
+          "sheet_name": {
+            "type": "string",
+            "description": "Sheet name in the Excel file"
+          },
+          "cell": {
+            "type": "string",
+            "description": "Cell reference (e.g., 'A1')"
+          },
+          "formula": {
+            "type": "string",
+            "description": "Formula (e.g., '=SUM(A1:A10)')"
+          }
+        },
+        "required": ["file_path", "sheet_name", "cell", "formula"]
+      }
+    },
+    {
+      "name": "create_workbook",
+      "description": "Create a new Excel workbook.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string",
+            "description": "Absolute path for the new Excel file"
+          }
+        },
+        "required": ["file_path"]
+      }
+    }
+  ]
+}
